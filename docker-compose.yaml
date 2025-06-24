@@ -64,7 +64,8 @@ services:
     image: lscr.io/linuxserver/phpmyadmin:latest
     depends_on:
       - mariadb
-   
+    ports:
+      - '8070:80'  
     environment:
       - PMA_HOST=mariadb
       - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
@@ -76,6 +77,7 @@ services:
       - SERVICE_FQDN_PHPMYADMIN
     volumes:
       - ./phpmyadmin-config:/config
+      - ./pma-custom-php.ini:/usr/local/etc/php/conf.d/custom-php.ini
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
       interval: 2s
