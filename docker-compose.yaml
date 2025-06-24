@@ -71,6 +71,7 @@ services:
       - PGID=1000
       - TZ=Europe/Moscow
       - PMA_ARBITRARY=1
+      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_PHPMYADMIN      
     volumes:
      - ./phpmyadmin-config:/config
     healthcheck:
