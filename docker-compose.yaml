@@ -61,11 +61,20 @@ services:
       retries: 5    
 
   phpmyadmin:
-    depends_on:
-      - mariadb
-    image: phpmyadmin/phpmyadmin
-    ports:
-      - '8070:80'
+    image: lscr.io/linuxserver/phpmyadmin:latest
     environment:
       - PMA_HOST=mariadb
       - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
+      - SERVICE_FQDN_PHPMYADMIN
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Moscow
+      - PMA_ARBITRARY=1
+      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_PHPMYADMIN
+    volumes:
+      - phpmyadmin-config:/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
+      interval: 2s
+      timeout: 10s
+      retries: 15      
