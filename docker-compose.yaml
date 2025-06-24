@@ -59,3 +59,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5    
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: wordpress_pma
+  depends_on:
+      - mariadb
+  environment:
+      - PMA_HOST=mariadb
+      - MYSQL_ROOT_PASSWORD=$SERVICE_PASSWORD_ROOT 
