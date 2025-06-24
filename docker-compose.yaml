@@ -63,8 +63,8 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: wordpress_pma
-  depends_on:
+    depends_on:
       - mariadb
-  environment:
+    environment:
       - PMA_HOST=mariadb
       - MYSQL_ROOT_PASSWORD=$SERVICE_PASSWORD_ROOT 
