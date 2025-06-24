@@ -8,7 +8,7 @@ services:
     image: wordpress:php8.2-fpm
     volumes:
       - ./wordpress-files:/var/www/html
-      - .//wordpress.ini:/usr/local/etc/php/conf.d/wordpress.ini
+      - ./wordpress.ini:/usr/local/etc/php/conf.d/wordpress.ini
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
@@ -73,7 +73,7 @@ services:
       - PGID=1000
       - TZ=Europe/Moscow
       - PMA_ARBITRARY=1
-      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_PHPMYADMIN      
+   
     volumes:
       - ./phpmyadmin-config:/config
     healthcheck:
