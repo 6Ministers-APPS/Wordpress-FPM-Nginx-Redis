@@ -65,7 +65,6 @@ services:
     environment:
       - PMA_HOST=mariadb
       - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
-      - SERVICE_FQDN_PHPMYADMIN
       - PUID=1000
       - PGID=1000
       - TZ=Europe/Moscow
