@@ -64,8 +64,6 @@ services:
     image: lscr.io/linuxserver/phpmyadmin:latest
     depends_on:
       - mariadb
-    ports:
-      - '8070:80'      
     environment:
       - PMA_HOST=mariadb
       - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
