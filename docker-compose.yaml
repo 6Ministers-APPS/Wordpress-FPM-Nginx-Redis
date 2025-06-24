@@ -74,7 +74,6 @@ services:
       - TZ=Europe/Moscow
       - PMA_ARBITRARY=1
       - PMA_ABSOLUTE_URI=$SERVICE_FQDN_PHPMYADMIN
-      - SERVICE_FQDN_PHPMYADMIN
     volumes:
       - ./phpmyadmin-config:/config
       - ./pma-custom-php.ini:/usr/local/etc/php/conf.d/custom-php.ini
