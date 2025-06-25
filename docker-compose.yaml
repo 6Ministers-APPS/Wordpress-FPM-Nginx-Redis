@@ -73,8 +73,7 @@ services:
       - PGID=1000
       - TZ=Europe/Moscow
       - PMA_ARBITRARY=1
-      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_PHPMYADMIN
-      - SERVICE_FQDN_PHPMYADMIN
+      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
     volumes:
       - ./phpmyadmin-config:/config
       - ./pma-custom-php.ini:/usr/local/etc/php/conf.d/custom-php.ini
