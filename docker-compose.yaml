@@ -36,6 +36,7 @@ services:
     image: mariadb:11
     volumes:
       - ./mariadb-data:/var/lib/mysql
+      - ./mariadb-conf:/etc/mysql
     environment:
       - MYSQL_ROOT_PASSWORD=$SERVICE_PASSWORD_ROOT
       - MYSQL_DATABASE=wordpress
