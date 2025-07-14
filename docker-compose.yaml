@@ -76,7 +76,6 @@ services:
       - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
     volumes:
       - ./phpmyadmin-config:/config
-      - ./php/pma-custom-php.ini:/usr/local/etc/php/conf.d/custom-php.ini
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
       interval: 2s
