@@ -36,6 +36,8 @@ services:
     image: mariadb:11
     volumes:
       - ./mariadb-data:/var/lib/mysql
+    ports:
+      - "3306:3306"    
     environment:
       - MYSQL_ROOT_PASSWORD=$SERVICE_PASSWORD_ROOT
       - MYSQL_DATABASE=wordpress
