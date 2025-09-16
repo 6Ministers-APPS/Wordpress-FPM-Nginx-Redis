@@ -5,7 +5,7 @@
 
 services:
   wordpress:
-    image: wordpress:php8.2-fpm
+    image: wordpress:php8.4-fpm
     volumes:
       - ./wordpress-files:/var/www/html
       - ./php/wp-php.ini:/usr/local/etc/php/conf.d/wp-php.ini
