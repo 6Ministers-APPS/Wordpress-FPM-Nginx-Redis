@@ -55,7 +55,8 @@ services:
       - "127.0.0.1:6379:6379"
     volumes:
       - ./redis-data:/data
-    command: ["redis-server", "--appendonly yes"]
+# ОПТИМИЗАЦИЯ: Лимит 512мб, удаление старых ключей (LRU), отключение записи на диск (для скорости)
+    command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
