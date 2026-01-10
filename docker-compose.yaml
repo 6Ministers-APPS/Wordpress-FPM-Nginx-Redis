@@ -9,6 +9,7 @@ services:
     volumes:
       - ./wordpress-files:/var/www/html
       - ./php/wp-php.ini:/usr/local/etc/php/conf.d/wp-php.ini
+      - ./nginx-cache:/var/run/nginx-cache
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
@@ -29,6 +30,7 @@ services:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html
       - ./logs/nginx:/var/log/nginx
+      - ./nginx-cache:/var/run/nginx-cache
     depends_on:
       - wordpress
       
@@ -55,7 +57,6 @@ services:
       - "127.0.0.1:6379:6379"
     volumes:
       - ./redis-data:/data
-# ОПТИМИЗАЦИЯ: Лимит 512мб, удаление старых ключей (LRU), отключение записи на диск (для скорости)
     command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
