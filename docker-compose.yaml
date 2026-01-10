@@ -10,6 +10,7 @@ services:
       - ./wordpress-files:/var/www/html
       - ./php/wp-php.ini:/usr/local/etc/php/conf.d/wp-php.ini
       - ./nginx-cache:/var/run/nginx-cache
+      - ./init-script.sh:/usr/local/bin/init-script.sh
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
@@ -18,6 +19,7 @@ services:
       - WORDPRESS_DB_NAME=wordpress
     depends_on:
       - mariadb
+    command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1"]
       interval: 2s
