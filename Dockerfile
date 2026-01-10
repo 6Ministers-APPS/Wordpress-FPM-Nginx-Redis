@@ -28,6 +28,11 @@ RUN docker-php-ext-install -j$(nproc) zip
 # 🧹 Очистка кэша (опционально, для уменьшения размера образа)
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# 🚀 Устанавливаем утилиту WP-CLI
+RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+    && chmod +x wp-cli.phar \
+    && mv wp-cli.phar /usr/local/bin/wp
+
 # 📂 Копируем кастомные файлы (если есть)
 # Например, кастомные плагины или темы
 # COPY ./wp-content /var/www/html/wp-content
