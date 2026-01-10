@@ -147,6 +147,7 @@ PLUGINS_LIST="
   redis-cache
   templately
   wpvivid-backuprestore
+  compressx
 "
 
 wp theme install hello-elementor --activate --allow-root --path=/var/www/html
