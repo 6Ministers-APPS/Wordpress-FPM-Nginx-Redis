@@ -33,6 +33,10 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
     && chmod +x wp-cli.phar \
     && mv wp-cli.phar /usr/local/bin/wp
 
+# 🚀 Устанавливаем расширение Redis через PECL
+RUN pecl install redis \
+    && docker-php-ext-enable redis
+
 # 📂 Копируем кастомные файлы (если есть)
 # Например, кастомные плагины или темы
 # COPY ./wp-content /var/www/html/wp-content
