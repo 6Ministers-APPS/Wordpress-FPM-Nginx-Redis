@@ -11,6 +11,7 @@ services:
       - ./php/wp-php.ini:/usr/local/etc/php/conf.d/wp-php.ini
       - ./nginx-cache:/var/run/nginx-cache
       - ./init-script.sh:/usr/local/bin/init-script.sh
+      - ./php-fpm-tuning.conf:/usr/local/etc/php-fpm.d/zz-tuning.conf
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
