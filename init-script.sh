@@ -88,6 +88,11 @@ set_config_safe        WP_REDIS_READ_TIMEOUT 1
 set_config_string_safe WP_CACHE_KEY_SALT "wp_cloud_"
 set_config_safe        WP_REDIS_IGNORED_GROUPS "['counts', 'plugins', 'themes', 'comment', 'html-forms']"
 
+# Использовать сжатие LZ4 (очень быстрое) или ZSTD
+set_config_safe WP_REDIS_COMPRESSION "lz4" 
+# Использовать igbinary сериализатор (компактнее и быстрее стандартного PHP)
+set_config_safe WP_REDIS_SERIALIZER "igbinary"
+
 # --- Г. НАСТРОЙКА FLUENT STORAGE ---
 echo "⚙️ Настраиваю Fluent Cloud Storage..."
 
