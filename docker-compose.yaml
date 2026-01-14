@@ -27,7 +27,7 @@ services:
       retries: 10
 
   nginx:
-    image: nginx:latest
+    image: fholzer/nginx-brotli:latest
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html
