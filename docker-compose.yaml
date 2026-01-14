@@ -40,6 +40,7 @@ services:
     image: mariadb:11
     volumes:
       - ./mariadb-data:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro      
     ports:
       - "3306:3306"    
     environment:
