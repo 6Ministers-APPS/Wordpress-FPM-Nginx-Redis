@@ -32,8 +32,6 @@ services:
 
   nginx:
     image: fholzer/nginx-brotli:latest
-    ports:
-      - "80:80"
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html
