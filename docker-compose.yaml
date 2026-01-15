@@ -21,7 +21,8 @@ services:
       - WORDPRESS_DB_NAME=wordpress
     depends_on:
       - mariadb
-    command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
+#    command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
+    command: sh -c "mkdir -p /var/run/php-fpm && chown www-data:www-data /var/run/php-fpm && chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
       # Проверяем наличие файла сокета
       test: ["CMD-SHELL", "test -S /var/run/php-fpm/php-fpm.sock || exit 1"]
