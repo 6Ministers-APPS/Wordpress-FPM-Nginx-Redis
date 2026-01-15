@@ -12,7 +12,7 @@ services:
       - ./nginx-cache:/var/run/nginx-cache
       - ./init-script.sh:/usr/local/bin/init-script.sh
       - ./php-fpm-tuning.conf:/usr/local/etc/php-fpm.d/zz-tuning.conf
-#      - sock-data:/var/run/php-fpm # <-- Общая папка для сокета
+      - sock-data:/var/run/php-fpm # <--- ✅ РАСКОММЕНТИРОВАНО (ОБЯЗАТЕЛЬНО)
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
@@ -23,12 +23,12 @@ services:
       - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
     healthcheck:
-# Проверяем, создался ли файл сокета
+      # Проверяем наличие файла сокета
       test: ["CMD-SHELL", "test -S /var/run/php-fpm/php-fpm.sock || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 30s # Даем время на запуск скриптов инициализации
+      start_period: 30s 
 
   nginx:
     image: fholzer/nginx-brotli:latest
@@ -37,9 +37,16 @@ services:
       - ./wordpress-files:/var/www/html
       - ./logs/nginx:/var/log/nginx
       - ./nginx-cache:/var/run/nginx-cache
-#      - sock-data:/var/run/php-fpm # <-- Та же папка
+      - sock-data:/var/run/php-fpm # <--- ✅ РАСКОММЕНТИРОВАНО (ОБЯЗАТЕЛЬНО)
     depends_on:
       - wordpress
+    # ✅ ДОБАВЛЕН HEALTHCHECK ДЛЯ NGINX
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
       
   mariadb:
     image: mariadb:11
@@ -94,5 +101,5 @@ services:
       timeout: 10s
       retries: 15   
 
-# volumes:
-#   sock-data:
+volumes:
+  sock-data:
