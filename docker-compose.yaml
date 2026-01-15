@@ -12,6 +12,7 @@ services:
       - ./nginx-cache:/var/run/nginx-cache
       - ./init-script.sh:/usr/local/bin/init-script.sh
       - ./php-fpm-tuning.conf:/usr/local/etc/php-fpm.d/zz-tuning.conf
+      - sock-data:/var/run/php-fpm # <-- Общая папка для сокета
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
@@ -21,10 +22,12 @@ services:
     depends_on:
       - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
+    
+    # ✅ ИСПРАВЛЕНО: Проверка файла сокета вместо curl
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1"]
-      interval: 2s
-      timeout: 10s
+      test: ["CMD-SHELL", "test -S /var/run/php-fpm/php-fpm.sock || exit 1"]
+      interval: 5s
+      timeout: 5s
       retries: 10
 
   nginx:
@@ -34,8 +37,18 @@ services:
       - ./wordpress-files:/var/www/html
       - ./logs/nginx:/var/log/nginx
       - ./nginx-cache:/var/run/nginx-cache
+      - sock-data:/var/run/php-fpm # <-- Та же папка
     depends_on:
       - wordpress
+# ✅ ДОБАВЛЕНО: Healthcheck через wget (так как это Alpine образ)
+    healthcheck:
+      # -q = тихо (без вывода прогресса)
+      # --spider = не скачивать файл, только проверить доступность (HEAD запрос)
+      # || exit 1 = если ошибка, вернуть код сбоя
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
       
   mariadb:
     image: mariadb:11
@@ -49,6 +62,7 @@ services:
       - MYSQL_DATABASE=wordpress
       - MYSQL_USER=$SERVICE_USER_WORDPRESS
       - MYSQL_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
+    # ✅ ВЕРНО: Стандартный скрипт проверки MariaDB
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -62,6 +76,7 @@ services:
     volumes:
       - ./redis-data:/data
     command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
+    # ✅ ВЕРНО: Стандартная проверка ping
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
@@ -84,8 +99,12 @@ services:
       - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
     volumes:
       - ./phpmyadmin-config:/config
+    # ✅ ВЕРНО: У phpMyAdmin свой веб-сервер внутри, curl сработает
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
       interval: 2s
       timeout: 10s
       retries: 15      
+
+volumes:
+  sock-data:
