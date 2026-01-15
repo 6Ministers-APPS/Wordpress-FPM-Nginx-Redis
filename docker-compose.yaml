@@ -94,5 +94,5 @@ services:
       timeout: 10s
       retries: 15   
 
-volumes:
-  sock-data:
+# volumes:
+#   sock-data:
