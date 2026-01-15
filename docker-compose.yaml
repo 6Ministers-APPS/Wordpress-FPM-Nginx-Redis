@@ -40,15 +40,11 @@ services:
       - sock-data:/var/run/php-fpm # <-- Та же папка
     depends_on:
       - wordpress
-# ✅ ДОБАВЛЕНО: Healthcheck через wget (так как это Alpine образ)
-    healthcheck:
-      # -q = тихо (без вывода прогресса)
-      # --spider = не скачивать файл, только проверить доступность (HEAD запрос)
-      # || exit 1 = если ошибка, вернуть код сбоя
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    # Nginx слушает порт 80, поэтому здесь curl уместен, если хотите проверять и его
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://127.0.0.1 || exit 1"]
+    #   interval: 5s
+    #   retries: 3
       
   mariadb:
     image: mariadb:11
