@@ -78,6 +78,7 @@ wp plugin delete hello akismet --allow-root --path=/var/www/html || true
 echo "⚙️ Применяю системные настройки..."
 set_config_string_safe WP_MEMORY_LIMIT "512M"
 set_config_safe WP_AUTO_UPDATE_CORE "false"
+set_config_safe DISABLE_WP_CRON "true"
 
 # --- В. НАСТРОЙКА REDIS ---
 echo "⚙️ Настраиваю Redis..."
