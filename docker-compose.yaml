@@ -12,7 +12,7 @@ services:
       - ./nginx-cache:/var/run/nginx-cache
       - ./init-script.sh:/usr/local/bin/init-script.sh
       - ./php-fpm-tuning.conf:/usr/local/etc/php-fpm.d/zz-tuning.conf
-      - sock-data:/var/run/php-fpm # <--- ✅ РАСКОММЕНТИРОВАНО (ОБЯЗАТЕЛЬНО)
+#      - sock-data:/var/run/php-fpm # <--- ✅ РАСКОММЕНТИРОВАНО (ОБЯЗАТЕЛЬНО)
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
@@ -21,8 +21,8 @@ services:
       - WORDPRESS_DB_NAME=wordpress
     depends_on:
       - mariadb
-#    command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
-    command: sh -c "mkdir -p /var/run/php-fpm && chown www-data:www-data /var/run/php-fpm && chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
+    command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
+#    command: sh -c "mkdir -p /var/run/php-fpm && chown www-data:www-data /var/run/php-fpm && chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
       # Проверяем наличие файла сокета
       test: ["CMD-SHELL", "test -S /var/run/php-fpm/php-fpm.sock || exit 1"]
@@ -38,7 +38,7 @@ services:
       - ./wordpress-files:/var/www/html
       - ./logs/nginx:/var/log/nginx
       - ./nginx-cache:/var/run/nginx-cache
-      - sock-data:/var/run/php-fpm # <--- ✅ РАСКОММЕНТИРОВАНО (ОБЯЗАТЕЛЬНО)
+#      - sock-data:/var/run/php-fpm # <--- ✅ РАСКОММЕНТИРОВАНО (ОБЯЗАТЕЛЬНО)
     depends_on:
       - wordpress
     # ✅ ДОБАВЛЕН HEALTHCHECK ДЛЯ NGINX
@@ -102,5 +102,5 @@ services:
       timeout: 10s
       retries: 15   
 
-volumes:
-  sock-data:
+#volumes:
+#  sock-data:
