@@ -93,6 +93,3 @@ services:
       interval: 2s
       timeout: 10s
       retries: 15      
-
-volumes:
-  sock-data: # <-- Объявляем том
