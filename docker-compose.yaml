@@ -23,12 +23,10 @@ services:
       - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
     healthcheck:
-        # Проверяем, существует ли файл сокета. 
-        # Curl не сработает, так как нет открытого HTTP порта.
-        test: ["CMD-SHELL", "test -S /var/run/php-fpm/php-fpm.sock || exit 1"]
-        interval: 5s
-        timeout: 5s
-        retries: 10
+      test: ["CMD", "curl", "-f", "http://127.0.0.1"]
+      interval: 2s
+      timeout: 10s
+      retries: 10
 
   nginx:
     image: fholzer/nginx-brotli:latest
