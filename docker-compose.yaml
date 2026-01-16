@@ -22,9 +22,10 @@ services:
       - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1"]
-      interval: 2s
-      timeout: 10s
+# Проверяем, отвечает ли TCP порт 9000
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/9000' || exit 1"]
+      interval: 5s
+      timeout: 5s
       retries: 10
 
   nginx:
