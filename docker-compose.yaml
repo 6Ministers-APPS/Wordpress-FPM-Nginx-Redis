@@ -25,11 +25,17 @@ services:
 #    command: sh -c "mkdir -p /var/run/php-fpm && chown www-data:www-data /var/run/php-fpm && chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
       # Проверяем наличие файла сокета
-      test: ["CMD-SHELL", "test -S /var/run/php-fpm/php-fpm.sock || exit 1"]
+      #test: ["CMD-SHELL", "test -S /var/run/php-fpm/php-fpm.sock || exit 1"]
+      #interval: 5s
+      #timeout: 5s
+     # retries: 10
+      #start_period: 30s 
+      # Проверка TCP порта 9000 (используем встроенную возможность bash)
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/9000' || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 30s 
+      start_period: 30s
 
   nginx:
     image: fholzer/nginx-brotli:latest
