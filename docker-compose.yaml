@@ -36,15 +36,7 @@ services:
       - ./nginx-cache:/var/run/nginx-cache
     depends_on:
       - wordpress
-    healthcheck:
-      # Используем wget, так как это Alpine образ. 
-      # -q = тихо, --spider = без скачивания файла (проверка ответа сервера)
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1 || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
- 
+      
   mariadb:
     image: mariadb:11
     volumes:
@@ -96,4 +88,4 @@ services:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
       interval: 2s
       timeout: 10s
-      retries: 15  
+      retries: 15    
