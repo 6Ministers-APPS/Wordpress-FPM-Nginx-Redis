@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
 	ffmpeg \
+	bzip2 \
+    libbz2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 🚀 Устанавливаем расширения PDO и pdo_mysql
@@ -19,6 +21,15 @@ RUN docker-php-ext-install -j$(nproc) pdo pdo_mysql
 
 # 🧩 Устанавливаем расширение zip (часто нужно для WordPress)
 RUN docker-php-ext-install -j$(nproc) zip
+
+# 🚀 Устанавливаем расширения PDO и pdo_mysql
+RUN docker-php-ext-install -j$(nproc) pdo pdo_mysql
+
+# 🧩 Устанавливаем расширение zip
+RUN docker-php-ext-install -j$(nproc) zip
+
+# 👇 ДОБАВЛЕНО: Устанавливаем расширение bz2 для поддержки архивов BZip2
+RUN docker-php-ext-install -j$(nproc) bz2
 
 # 📌 Опционально: устанавливаем mysqli (если нужно, хотя pdo_mysql уже покрывает MySQL)
 # RUN docker-php-ext-install -j$(nproc) mysqli
