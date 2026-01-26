@@ -162,6 +162,7 @@ cd /var/www/html/wp-content/plugins
 
 # Список плагинов
 PLUGINS=(
+  "mainwp-child"
   "seopress"
   "elementor"
   "cyr-to-lat"
