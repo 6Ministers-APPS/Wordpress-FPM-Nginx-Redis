@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
 	ffmpeg \
 	bzip2 \
     libbz2-dev \
+	wget \
     && rm -rf /var/lib/apt/lists/*
 
 # 🚀 Устанавливаем расширения PDO и pdo_mysql
