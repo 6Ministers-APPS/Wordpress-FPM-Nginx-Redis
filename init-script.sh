@@ -166,6 +166,7 @@ PLUGINS=(
   "sessions"
   "ninja-tables"
   "autoptimize"
+  "independent-analytics"
   "seopress"
   "elementor"
   "cyr-to-lat"
