@@ -163,6 +163,9 @@ cd /var/www/html/wp-content/plugins
 # Список плагинов
 PLUGINS=(
   "mainwp-child"
+  "sessions"
+  "ninja-tables"
+  "autoptimize"
   "seopress"
   "elementor"
   "cyr-to-lat"
