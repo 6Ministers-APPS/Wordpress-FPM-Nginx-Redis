@@ -175,7 +175,6 @@ PLUGINS=(
   "essential-blocks"
   "fluent-boards"
   "fluentform"
-  "fluent-snippets"
   "fluent-support"
   "fluent-affiliate"
   "fluent-security"
@@ -186,7 +185,7 @@ PLUGINS=(
   "fluent-smtp"
   "loco-translate"
   "nginx-helper"
-  "paymattic"
+  "wp-payment-form"
   "really-simple-ssl"
   "redis-cache"
   "templately"
@@ -194,32 +193,46 @@ PLUGINS=(
   "compressx"
 )
 
+# Цикл загрузки стандартных плагинов
 for plugin in "${PLUGINS[@]}"; do
-    # Скрипт сам проверяет наличие каждого плагина
     if [ ! -d "$plugin" ]; then
         echo "⬇️ Скачиваю $plugin..."
+        # Используем wget. Если его нет, скрипт упадет.
         wget -q "https://downloads.wordpress.org/plugin/$plugin.latest-stable.zip" -O "$plugin.zip"
         
         if [ -s "$plugin.zip" ]; then
             unzip -q "$plugin.zip" && rm "$plugin.zip"
-            echo "✅ $plugin распакован."
+            echo "✅ $plugin установлен."
         else
-            echo "❌ Ошибка скачивания $plugin."
+            echo "❌ Ошибка скачивания $plugin (проверьте имя/интернет)."
             rm -f "$plugin.zip"
         fi
     else
-        # Тихо пропускаем, если плагин есть (чтобы не спамить в логи)
-        : 
+        : # Плагин уже есть, пропускаем молча
     fi
 done
 
-# Исправляем права
+# 2. ЗАГРУЗКА FLUENT SNIPPETS (С GitHub)
+# Его нет в официальном репозитории, качаем напрямую
+if [ ! -d "fluent-snippets" ]; then
+    echo "⬇️ Скачиваю Fluent Snippets (GitHub)..."
+    wget -q "https://github.com/WPManageNinja/fluent-snippets/archive/refs/heads/master.zip" -O "fluent-snippets.zip"
+    
+    if [ -s "fluent-snippets.zip" ]; then
+        unzip -q "fluent-snippets.zip"
+        # GitHub кладет файлы в папку 'fluent-snippets-master', переименовываем её
+        mv fluent-snippets-master fluent-snippets
+        rm "fluent-snippets.zip"
+        echo "✅ fluent-snippets установлен."
+    else
+        echo "❌ Ошибка скачивания Fluent Snippets."
+        rm -f "fluent-snippets.zip"
+    fi
+fi
+
+# 3. ИСПРАВЛЕНИЕ ПРАВ ДОСТУПА
 echo "🔧 Исправляю права доступа..."
 chown -R www-data:www-data /var/www/html/wp-content/plugins
-
-
-
-
 
 # ==============================================================================
 # ФИНАЛ
