@@ -166,8 +166,9 @@ PLUGINS=(
   "sessions"
   "ninja-tables"
   "autoptimize"
+  "easy-code-manager"
   "independent-analytics"
-  "seopress"
+  "wp-seopress"
   "elementor"
   "cyr-to-lat"
   "aimogen"
@@ -213,25 +214,20 @@ for plugin in "${PLUGINS[@]}"; do
     fi
 done
 
-# 2. ЗАГРУЗКА FLUENT SNIPPETS (С GitHub)
-# Его нет в официальном репозитории, качаем напрямую
-if [ ! -d "fluent-snippets" ]; then
-    echo "⬇️ Скачиваю Fluent Snippets (GitHub)..."
-    wget -q "https://github.com/WPManageNinja/fluent-snippets/archive/refs/heads/master.zip" -O "fluent-snippets.zip"
-    
-    if [ -s "fluent-snippets.zip" ]; then
-        unzip -q "fluent-snippets.zip"
-        # GitHub кладет файлы в папку 'fluent-snippets-master', переименовываем её
-        mv fluent-snippets-master fluent-snippets
-        rm "fluent-snippets.zip"
-        echo "✅ fluent-snippets установлен."
-    else
-        echo "❌ Ошибка скачивания Fluent Snippets."
-        rm -f "fluent-snippets.zip"
-    fi
+# УДАЛЕНИЕ МУСОРА (Hello Dolly)
+# Проверяем и удаляем файл hello.php, который идет по умолчанию с WordPress
+if [ -f "hello.php" ]; then
+    echo "🗑 Удаляю Hello Dolly..."
+    rm -f "hello.php"
 fi
 
-# 3. ИСПРАВЛЕНИЕ ПРАВ ДОСТУПА
+# Также можно удалить Akismet, если вы им не пользуетесь (он идет папкой)
+if [ -d "akismet" ]; then
+    echo "🗑 Удаляю Akismet..."
+    rm -rf "akismet"
+fi
+
+# ИСПРАВЛЕНИЕ ПРАВ ДОСТУПА
 echo "🔧 Исправляю права доступа..."
 chown -R www-data:www-data /var/www/html/wp-content/plugins
 
