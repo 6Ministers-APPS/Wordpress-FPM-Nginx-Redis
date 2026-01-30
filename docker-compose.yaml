@@ -18,6 +18,10 @@ services:
       - WORDPRESS_DB_USER=$SERVICE_USER_WORDPRESS
       - WORDPRESS_DB_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - WORDPRESS_DB_NAME=wordpress
+      # Если в Coolify переменная не задана, будет использовано значение после ":-"
+      - WP_DEBUG=${WP_DEBUG:-true}
+      - WP_DEBUG_LOG=${WP_DEBUG_LOG:-true}
+      - WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
     depends_on:
       - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  

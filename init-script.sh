@@ -130,16 +130,15 @@ fi
 
 echo "🐞 Настраиваю Error Log..."
 
-# 1. Включаем сам режим дебага
-set_config_safe WP_DEBUG "true"
+# Принимаем значения из Docker Compose.
+# Если вдруг переменная пришла пустой, ставим безопасный дефолт.
+ENV_WP_DEBUG=${WP_DEBUG:-false}
+ENV_WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
+ENV_WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
 
-# 2. Включаем запись в файл debug.log (Именно этот файл ищет MainWP)
-set_config_safe WP_DEBUG_LOG "true"
-
-# 3. ОТКЛЮЧАЕМ вывод ошибок на экран (чтобы посетители не видели сбои)
-set_config_safe WP_DEBUG_DISPLAY "false"
-
-# 4. Гарантируем, что JS/CSS скрипты не будут конкатенироваться (помогает при отладке админки)
+set_config_safe WP_DEBUG "$ENV_WP_DEBUG"
+set_config_safe WP_DEBUG_LOG "$ENV_WP_DEBUG_LOG"
+set_config_safe WP_DEBUG_DISPLAY "$ENV_WP_DEBUG_DISPLAY"
 set_config_safe SCRIPT_DEBUG "false"
 
 
