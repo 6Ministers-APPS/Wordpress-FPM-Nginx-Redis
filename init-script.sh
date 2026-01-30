@@ -130,16 +130,15 @@ fi
 
 echo "🐞 Настраиваю Error Log..."
 
-# 1. Включаем сам режим дебага
-set_config_safe WP_DEBUG "true"
+# Принимаем значения из Docker Compose.
+# Если вдруг переменная пришла пустой, ставим безопасный дефолт.
+ENV_WP_DEBUG=${WP_DEBUG:-false}
+ENV_WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
+ENV_WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
 
-# 2. Включаем запись в файл debug.log (Именно этот файл ищет MainWP)
-set_config_safe WP_DEBUG_LOG "true"
-
-# 3. ОТКЛЮЧАЕМ вывод ошибок на экран (чтобы посетители не видели сбои)
-set_config_safe WP_DEBUG_DISPLAY "false"
-
-# 4. Гарантируем, что JS/CSS скрипты не будут конкатенироваться (помогает при отладке админки)
+set_config_safe WP_DEBUG "$ENV_WP_DEBUG"
+set_config_safe WP_DEBUG_LOG "$ENV_WP_DEBUG_LOG"
+set_config_safe WP_DEBUG_DISPLAY "$ENV_WP_DEBUG_DISPLAY"
 set_config_safe SCRIPT_DEBUG "false"
 
 
@@ -162,7 +161,13 @@ cd /var/www/html/wp-content/plugins
 
 # Список плагинов
 PLUGINS=(
-  "seopress"
+  "mainwp-child"
+  "sessions"
+  "ninja-tables"
+  "autoptimize"
+  "easy-code-manager"
+  "independent-analytics"
+  "wp-seopress"
   "elementor"
   "cyr-to-lat"
   "aimogen"
@@ -171,7 +176,6 @@ PLUGINS=(
   "essential-blocks"
   "fluent-boards"
   "fluentform"
-  "fluent-snippets"
   "fluent-support"
   "fluent-affiliate"
   "fluent-security"
@@ -182,7 +186,7 @@ PLUGINS=(
   "fluent-smtp"
   "loco-translate"
   "nginx-helper"
-  "paymattic"
+  "wp-payment-form"
   "really-simple-ssl"
   "redis-cache"
   "templately"
@@ -190,32 +194,41 @@ PLUGINS=(
   "compressx"
 )
 
+# Цикл загрузки стандартных плагинов
 for plugin in "${PLUGINS[@]}"; do
-    # Скрипт сам проверяет наличие каждого плагина
     if [ ! -d "$plugin" ]; then
         echo "⬇️ Скачиваю $plugin..."
+        # Используем wget. Если его нет, скрипт упадет.
         wget -q "https://downloads.wordpress.org/plugin/$plugin.latest-stable.zip" -O "$plugin.zip"
         
         if [ -s "$plugin.zip" ]; then
             unzip -q "$plugin.zip" && rm "$plugin.zip"
-            echo "✅ $plugin распакован."
+            echo "✅ $plugin установлен."
         else
-            echo "❌ Ошибка скачивания $plugin."
+            echo "❌ Ошибка скачивания $plugin (проверьте имя/интернет)."
             rm -f "$plugin.zip"
         fi
     else
-        # Тихо пропускаем, если плагин есть (чтобы не спамить в логи)
-        : 
+        : # Плагин уже есть, пропускаем молча
     fi
 done
 
-# Исправляем права
+# УДАЛЕНИЕ МУСОРА (Hello Dolly)
+# Проверяем и удаляем файл hello.php, который идет по умолчанию с WordPress
+if [ -f "hello.php" ]; then
+    echo "🗑 Удаляю Hello Dolly..."
+    rm -f "hello.php"
+fi
+
+# Также можно удалить Akismet, если вы им не пользуетесь (он идет папкой)
+if [ -d "akismet" ]; then
+    echo "🗑 Удаляю Akismet..."
+    rm -rf "akismet"
+fi
+
+# ИСПРАВЛЕНИЕ ПРАВ ДОСТУПА
 echo "🔧 Исправляю права доступа..."
 chown -R www-data:www-data /var/www/html/wp-content/plugins
-
-
-
-
 
 # ==============================================================================
 # ФИНАЛ
