@@ -21,7 +21,7 @@ services:
       - WORDPRESS_DEBUG=false
       # Если в Coolify переменная не задана, будет использовано значение после ":-"
       - WP_DEBUG=${WP_DEBUG:-false}
-      - WP_DEBUG_LOG=${WP_DEBUG_LOG:-true}
+      - WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
       - WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
     depends_on:
       - mariadb
