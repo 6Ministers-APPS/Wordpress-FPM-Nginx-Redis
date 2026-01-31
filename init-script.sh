@@ -162,6 +162,7 @@ cd /var/www/html/wp-content/plugins
 # Список плагинов
 PLUGINS=(
   "mainwp-child"
+  "security-ninja"
   "sessions"
   "ninja-tables"
   "autoptimize"
