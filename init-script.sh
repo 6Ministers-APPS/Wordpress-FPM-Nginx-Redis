@@ -71,12 +71,8 @@ set_config_string_once() {
 # ==============================================================================
 echo "⚙️ Актуализация системных настроек..."
 
-# --- A. Лимиты и Ядро (FORCE) ---
-set_config_string_force WP_MEMORY_LIMIT "512M"
-set_config_force WP_AUTO_UPDATE_CORE "false"
-set_config_force DISABLE_WP_CRON "true"
 
-# --- B. Настройки Дебага (FORCE) ---
+# --- A. Настройки Дебага (FORCE) ---
 ENV_WP_DEBUG=${WP_DEBUG:-false}
 ENV_WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
 ENV_WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
@@ -157,6 +153,11 @@ set_config_string_once FLUENT_CART_CLOUD_STORAGE_REGION ""
 set_config_string_once FLUENT_CART_CLOUD_STORAGE_ENDPOINT ""
 set_config_string_once FLUENT_CART_CLOUD_STORAGE_SUB_FOLDER ""
 
+# --- A. Лимиты и Ядро (FORCE) ---
+set_config_string_force WP_MEMORY_LIMIT "512M"
+set_config_force WP_AUTO_UPDATE_CORE "false"
+set_config_force DISABLE_WP_CRON "true"
+
 # --- F. Генерация ключей безопасности ---
 echo "🔑 Генерирую ключи (Salts)..."
 wp config shuffle-salts --allow-root --path=/var/www/html
@@ -216,23 +217,32 @@ for plugin in "${PLUGINS[@]}"; do
     fi
 done
 
-# --- H. Удаление мусора ---
-if [ -f "hello.php" ]; then
-    echo "🗑 Удаляю Hello Dolly..."
-    rm -f "hello.php"
-fi
+# --- H. Удаление мусора (Обновлено) ---
+echo "🗑 Очистка системы..."
 
-if [ -d "akismet" ]; then
-    echo "🗑 Удаляю Akismet..."
-    rm -rf "akismet"
-fi
+# Удаляем Hello Dolly и Akismet
+rm -f hello.php
+rm -rf akismet
+
+# Удаляем файлы, раскрывающие версию WP (Ваш запрос)
+echo "🔒 Удаляю license.txt и readme.html..."
+rm -f license.txt
+rm -f readme.html
 
 # --- I. Финальные права доступа ---
 echo "🔧 Финальная настройка прав..."
 cd /var/www/html
 mkdir -p wp-content/uploads
-chown -R www-data:www-data wp-content
+
+# 1. Отдаем все файлы пользователю www-data
+chown -R www-data:www-data /var/www/html
+
+# 2. Права на папки (стандарт)
 chmod -R 775 wp-content
+
+# 3. 🔒 ЗАЩИТА WP-CONFIG (Ваша рекомендация)
+# 640 = Владелец пишет/читает, Группа читает, Остальные - идут лесом.
+chmod 640 /var/www/html/wp-config.php
 
 # --- J. Финал ---
 touch "$MARKER"
