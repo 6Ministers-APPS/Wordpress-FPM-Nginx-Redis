@@ -32,6 +32,37 @@ services:
       timeout: 10s
       retries: 10
 
+# --- НОВЫЙ СЕРВИС: WP-CRON (Sidecar) ---
+  wp-cron:
+    build: .
+    container_name: wp_cron_worker
+    restart: unless-stopped
+    volumes:
+      # Подключаем те же файлы, чтобы WP-CLI видел код сайта и wp-config.php
+      - ./wordpress-files:/var/www/html
+      - ./php/wp-php.ini:/usr/local/etc/php/conf.d/wp-php.ini
+    environment:
+      # Передаем доступы к БД, так как WP-CLI запускает PHP и должен подключаться к базе
+      - WORDPRESS_DB_HOST=mariadb
+      - WORDPRESS_DB_USER=$SERVICE_USER_WORDPRESS
+      - WORDPRESS_DB_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
+      - WORDPRESS_DB_NAME=wordpress
+    depends_on:
+      - mariadb
+      - wordpress
+    entrypoint: >
+      sh -c "
+      echo '⏳ Жду инициализации базы и конфига...' &&
+      sleep 20 &&
+      echo '🚀 Запуск WP-Cron Worker...' &&
+      while true; do
+        # Запускаем крон через CLI. --allow-root нужен, так как контейнер стартует от рута.
+        # > /dev/null гасит вывод, чтобы не засорять логи, если задач нет.
+        wp cron event run --due-now --allow-root --path=/var/www/html > /dev/null 2>&1
+        sleep 60
+      done"
+  # ---------------------------------------
+
   nginx:
     image: fholzer/nginx-brotli:latest
     volumes:
