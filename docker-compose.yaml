@@ -46,14 +46,16 @@ services:
     image: mariadb:11
     volumes:
       - ./mariadb-data:/var/lib/mysql
-      - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro      
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./create-readonly-user.sh:/docker-entrypoint-initdb.d/init-readonly.sh
     ports:
-      - "3306:3306"    
+      - "127.0.0.1:3306:3306"    
     environment:
       - MYSQL_ROOT_PASSWORD=$SERVICE_PASSWORD_ROOT
       - MYSQL_DATABASE=wordpress
       - MYSQL_USER=$SERVICE_USER_WORDPRESS
       - MYSQL_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
+      - READONLY_PASSWORD=${READONLY_DB_PASSWORD}     
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
