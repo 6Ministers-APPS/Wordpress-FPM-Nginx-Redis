@@ -203,6 +203,7 @@ echo "📦 Скачиваю плагины..."
 cd /var/www/html/wp-content/plugins
 
 PLUGINS=(
+  "wp-crontrol"
   "mainwp-child"
   "security-ninja"
   "sessions"
