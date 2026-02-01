@@ -216,23 +216,32 @@ for plugin in "${PLUGINS[@]}"; do
     fi
 done
 
-# --- H. Удаление мусора ---
-if [ -f "hello.php" ]; then
-    echo "🗑 Удаляю Hello Dolly..."
-    rm -f "hello.php"
-fi
+# --- H. Удаление мусора (Обновлено) ---
+echo "🗑 Очистка системы..."
 
-if [ -d "akismet" ]; then
-    echo "🗑 Удаляю Akismet..."
-    rm -rf "akismet"
-fi
+# Удаляем Hello Dolly и Akismet
+rm -f hello.php
+rm -rf akismet
+
+# Удаляем файлы, раскрывающие версию WP (Ваш запрос)
+echo "🔒 Удаляю license.txt и readme.html..."
+rm -f license.txt
+rm -f readme.html
 
 # --- I. Финальные права доступа ---
 echo "🔧 Финальная настройка прав..."
 cd /var/www/html
 mkdir -p wp-content/uploads
-chown -R www-data:www-data wp-content
+
+# 1. Отдаем все файлы пользователю www-data
+chown -R www-data:www-data /var/www/html
+
+# 2. Права на папки (стандарт)
 chmod -R 775 wp-content
+
+# 3. 🔒 ЗАЩИТА WP-CONFIG (Ваша рекомендация)
+# 640 = Владелец пишет/читает, Группа читает, Остальные - идут лесом.
+chmod 640 /var/www/html/wp-config.php
 
 # --- J. Финал ---
 touch "$MARKER"
