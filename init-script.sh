@@ -93,19 +93,53 @@ if ! grep -q "HTTP_X_FORWARDED_PROTO" /var/www/html/wp-config.php; then
 fi
 
 # ==============================================================================
-# 4. ПРОВЕРКА МАРКЕРА (СТОП-ЛИНИЯ)
+# СОЗДАНИЕ MU-ПЛАГИНОВ (ЗАЩИТА REST API)
+# ==============================================================================
+echo "🛡 Создаю плагины безопасности (MU-Plugins)..."
+mkdir -p /var/www/html/wp-content/mu-plugins
+
+# 1. Защита от перебора пользователей (User Enumeration)
+cat <<EOT > /var/www/html/wp-content/mu-plugins/disable-user-enum.php
+<?php
+/*
+Plugin Name: Stop User Enumeration
+Description: Blocks /wp-json/wp/v2/users for non-logged in users.
+*/
+add_filter( 'rest_endpoints', function( \$endpoints ) {
+    if ( ! is_user_logged_in() ) {
+        if ( isset( \$endpoints['/wp/v2/users'] ) ) {
+            unset( \$endpoints['/wp/v2/users'] );
+        }
+        if ( isset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] ) ) {
+            unset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] );
+        }
+    }
+    return \$endpoints;
+});
+EOT
+
+# 2. Скрытие ссылок REST API из кода (Obfuscation)
+cat <<EOT > /var/www/html/wp-content/mu-plugins/hide-rest-links.php
+<?php
+/*
+Plugin Name: Hide REST API Links
+Description: Removes REST API links from HTML <head> to prevent easy discovery.
+*/
+remove_action('xmlrpc_rsd_apis', 'rest_output_rsd');
+remove_action('wp_head', 'rest_output_link_wp_head');
+remove_action('template_redirect', 'rest_output_link_header', 11, 0);
+EOT
+
+
+# ==============================================================================
+# 4. ПРОВЕРКА МАРКЕРА И ПЕРВИЧНАЯ УСТАНОВКА
 # ==============================================================================
 MARKER="/var/www/html/.setup_done"
 
-if [ -f "$MARKER" ]; then
-    echo "✅ Базовая установка уже была. Плагины и Static Config не трогаем."
-    
-    # Права обновляем всегда
-    mkdir -p /var/www/html/wp-content/uploads
-    chown -R www-data:www-data /var/www/html/wp-content
-    
-    exit 0
-fi
+if [ ! -f "$MARKER" ]; then
+    echo "🚀 Первый запуск! Начинаю установку плагинов и генерацию ключей..."
+	
+		
 
 # ==============================================================================
 # 5. ЗОНА "ОДИН РАЗ" (ПЛАГИНЫ И ПЕРВИЧНЫЙ КОНФИГ)
@@ -163,44 +197,6 @@ echo "🔑 Генерирую ключи (Salts)..."
 wp config shuffle-salts --allow-root --path=/var/www/html
 wp cache flush --allow-root --path=/var/www/html
 
-# ==============================================================================
-# СОЗДАНИЕ MU-ПЛАГИНОВ (ЗАЩИТА REST API)
-# ==============================================================================
-echo "🛡 Создаю плагины безопасности (MU-Plugins)..."
-mkdir -p /var/www/html/wp-content/mu-plugins
-
-# 1. Защита от перебора пользователей (User Enumeration)
-cat <<EOT > /var/www/html/wp-content/mu-plugins/disable-user-enum.php
-<?php
-/*
-Plugin Name: Stop User Enumeration
-Description: Blocks /wp-json/wp/v2/users for non-logged in users.
-*/
-add_filter( 'rest_endpoints', function( \$endpoints ) {
-    if ( ! is_user_logged_in() ) {
-        if ( isset( \$endpoints['/wp/v2/users'] ) ) {
-            unset( \$endpoints['/wp/v2/users'] );
-        }
-        if ( isset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] ) ) {
-            unset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] );
-        }
-    }
-    return \$endpoints;
-});
-EOT
-
-# 2. Скрытие ссылок REST API из кода (Obfuscation)
-cat <<EOT > /var/www/html/wp-content/mu-plugins/hide-rest-links.php
-<?php
-/*
-Plugin Name: Hide REST API Links
-Description: Removes REST API links from HTML <head> to prevent easy discovery.
-*/
-remove_action('xmlrpc_rsd_apis', 'rest_output_rsd');
-remove_action('wp_head', 'rest_output_link_wp_head');
-remove_action('template_redirect', 'rest_output_link_header', 11, 0);
-EOT
-
 
 # --- G. Загрузка плагинов ---
 echo "📦 Скачиваю плагины..."
@@ -255,18 +251,27 @@ for plugin in "${PLUGINS[@]}"; do
         fi
     fi
 done
+# =====
+touch "$MARKER"
+    echo "✅ Первичная установка завершена."
+fi
+
+# ==============================================================================
+# 6. ЗОНА "ВЫПОЛНЯТЬ ВСЕГДА" (ФИНАЛИЗАЦИЯ)
+# ==============================================================================
+# Этот код сработает ПРИ КАЖДОМ РЕДЕПЛОЕ, даже если сайт уже старый.
 
 # --- H. Удаление мусора (Обновлено) ---
 echo "🗑 Очистка системы..."
 
 # Удаляем Hello Dolly и Akismet
-rm -f hello.php
-rm -rf akismet
+rm -f /var/www/html/wp-content/plugins/hello.php
+rm -rf /var/www/html/wp-content/plugins/akismet
 
 # Удаляем файлы, раскрывающие версию WP (Ваш запрос)
 echo "🔒 Удаляю license.txt и readme.html..."
-rm -f license.txt
-rm -f readme.html
+rm -f /var/www/html/license.txt
+rm -f /var/www/html/readme.html
 
 # --- I. Финальные права доступа ---
 echo "🔧 Финальная настройка прав..."
