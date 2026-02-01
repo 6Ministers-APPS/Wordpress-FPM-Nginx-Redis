@@ -60,13 +60,6 @@ services:
       timeout: 20s
       retries: 10
  
-  sysctl-init:
-      image: alpine:latest
-      container_name: sysctl-init
-      restart: no
-      privileged: true  # ⚠️ Обязательно: дает права менять настройки хоста
-      command: sysctl -w vm.overcommit_memory=1
- 
   redis:
     image: redis:latest
     ports:
@@ -79,8 +72,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5      
-    depends_on:
-      - sysctl-init  # Redis запустится только после того, как "настройщик" отработает
 
   phpmyadmin:
     image: lscr.io/linuxserver/phpmyadmin:latest
