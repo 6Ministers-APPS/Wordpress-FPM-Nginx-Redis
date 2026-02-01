@@ -163,6 +163,45 @@ echo "🔑 Генерирую ключи (Salts)..."
 wp config shuffle-salts --allow-root --path=/var/www/html
 wp cache flush --allow-root --path=/var/www/html
 
+# ==============================================================================
+# СОЗДАНИЕ MU-ПЛАГИНОВ (ЗАЩИТА REST API)
+# ==============================================================================
+echo "🛡 Создаю плагины безопасности (MU-Plugins)..."
+mkdir -p /var/www/html/wp-content/mu-plugins
+
+# 1. Защита от перебора пользователей (User Enumeration)
+cat <<EOT > /var/www/html/wp-content/mu-plugins/disable-user-enum.php
+<?php
+/*
+Plugin Name: Stop User Enumeration
+Description: Blocks /wp-json/wp/v2/users for non-logged in users.
+*/
+add_filter( 'rest_endpoints', function( \$endpoints ) {
+    if ( ! is_user_logged_in() ) {
+        if ( isset( \$endpoints['/wp/v2/users'] ) ) {
+            unset( \$endpoints['/wp/v2/users'] );
+        }
+        if ( isset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] ) ) {
+            unset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] );
+        }
+    }
+    return \$endpoints;
+});
+EOT
+
+# 2. Скрытие ссылок REST API из кода (Obfuscation)
+cat <<EOT > /var/www/html/wp-content/mu-plugins/hide-rest-links.php
+<?php
+/*
+Plugin Name: Hide REST API Links
+Description: Removes REST API links from HTML <head> to prevent easy discovery.
+*/
+remove_action('xmlrpc_rsd_apis', 'rest_output_rsd');
+remove_action('wp_head', 'rest_output_link_wp_head');
+remove_action('template_redirect', 'rest_output_link_header', 11, 0);
+EOT
+
+
 # --- G. Загрузка плагинов ---
 echo "📦 Скачиваю плагины..."
 cd /var/www/html/wp-content/plugins
