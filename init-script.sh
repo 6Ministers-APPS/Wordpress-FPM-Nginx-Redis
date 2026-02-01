@@ -71,12 +71,8 @@ set_config_string_once() {
 # ==============================================================================
 echo "⚙️ Актуализация системных настроек..."
 
-# --- A. Лимиты и Ядро (FORCE) ---
-set_config_string_force WP_MEMORY_LIMIT "512M"
-set_config_force WP_AUTO_UPDATE_CORE "false"
-set_config_force DISABLE_WP_CRON "true"
 
-# --- B. Настройки Дебага (FORCE) ---
+# --- A. Настройки Дебага (FORCE) ---
 ENV_WP_DEBUG=${WP_DEBUG:-false}
 ENV_WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
 ENV_WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
@@ -156,6 +152,11 @@ set_config_string_once FLUENT_CART_CLOUD_STORAGE_BUCKET ""
 set_config_string_once FLUENT_CART_CLOUD_STORAGE_REGION ""
 set_config_string_once FLUENT_CART_CLOUD_STORAGE_ENDPOINT ""
 set_config_string_once FLUENT_CART_CLOUD_STORAGE_SUB_FOLDER ""
+
+# --- A. Лимиты и Ядро (FORCE) ---
+set_config_string_force WP_MEMORY_LIMIT "512M"
+set_config_force WP_AUTO_UPDATE_CORE "false"
+set_config_force DISABLE_WP_CRON "true"
 
 # --- F. Генерация ключей безопасности ---
 echo "🔑 Генерирую ключи (Salts)..."
