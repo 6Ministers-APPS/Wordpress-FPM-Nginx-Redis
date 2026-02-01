@@ -107,33 +107,34 @@ services:
       retries: 5      
 
   phpmyadmin:
-    image: lscr.io/linuxserver/phpmyadmin:latest
-    depends_on:
-      - mariadb
-    ports:
-      - "8070:80"      
-    environment:
-      - PMA_HOST=mariadb
-      - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Moscow
-      - PMA_ARBITRARY=1
-      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
-    volumes:
-      - ./phpmyadmin-config:/config
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
-      interval: 2s
-      timeout: 10s
-      retries: 15    
-      
-  volumes:
-    # Наш RAM-диск для кэша
-    fastcgi_cache:
-      driver_opts:
-        type: tmpfs
-        device: tmpfs
-        # size=256M: Лимит памяти (на 256мб влезут тысячи страниц)
-        # mode=1777: Разрешает чтение/запись всем (и nginx, и www-data), аналог chmod 777
-        o: "size=256M,mode=1777"
+      image: lscr.io/linuxserver/phpmyadmin:latest
+      depends_on:
+        - mariadb
+      ports:
+        - "8070:80"      
+      environment:
+        - PMA_HOST=mariadb
+        - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
+        - PUID=1000
+        - PGID=1000
+        - TZ=Europe/Moscow
+        - PMA_ARBITRARY=1
+        - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
+      volumes:
+        - ./phpmyadmin-config:/config
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
+        interval: 2s
+        timeout: 10s
+        retries: 15    
+
+# 👇 ИСПРАВЛЕНИЕ: Убраны отступы, блок прижат влево
+volumes:
+  # Наш RAM-диск для кэша
+  fastcgi_cache:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      # size=256M: Лимит памяти
+      # mode=1777: Разрешает чтение/запись всем
+      o: "size=256M,mode=1777"
