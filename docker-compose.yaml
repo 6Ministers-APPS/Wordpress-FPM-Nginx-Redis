@@ -9,9 +9,9 @@ services:
     volumes:
       - ./wordpress-files:/var/www/html
       - ./php/wp-php.ini:/usr/local/etc/php/conf.d/wp-php.ini
-      - ./nginx-cache:/var/run/nginx-cache
       - ./init-script.sh:/usr/local/bin/init-script.sh
       - ./php-fpm-tuning.conf:/usr/local/etc/php-fpm.d/zz-tuning.conf
+      - fastcgi_cache:/var/run/nginx-cache
     environment:
       - SERVICE_FQDN_WORDPRESS
       - WORDPRESS_DB_HOST=mariadb
@@ -69,7 +69,7 @@ services:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html
       - ./logs/nginx:/var/log/nginx
-      - ./nginx-cache:/var/run/nginx-cache
+      - fastcgi_cache:/var/run/nginx-cache
     depends_on:
       - wordpress
       
@@ -127,3 +127,13 @@ services:
       interval: 2s
       timeout: 10s
       retries: 15    
+      
+  volumes:
+    # Наш RAM-диск для кэша
+    fastcgi_cache:
+      driver_opts:
+        type: tmpfs
+        device: tmpfs
+        # size=256M: Лимит памяти (на 256мб влезут тысячи страниц)
+        # mode=1777: Разрешает чтение/запись всем (и nginx, и www-data), аналог chmod 777
+        o: "size=256M,mode=1777"
