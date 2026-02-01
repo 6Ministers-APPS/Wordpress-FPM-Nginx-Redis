@@ -68,7 +68,27 @@ configure_swap() {
     fi
 }
 
-# --- 3. ГЕНЕРАЦИЯ КЛЮЧЕЙ ---
+# --- 3. НАСТРОЙКА ЯДРА (MEMORY OVERCOMMIT) ---
+# 👇 ВАША НОВАЯ НАСТРОЙКА ДОБАВЛЕНА СЮДА
+tune_kernel() {
+    info "Настройка параметров ядра (Redis Fix)..."
+    
+    # 1. Применяем настройку прямо сейчас
+    sysctl -w vm.overcommit_memory=1
+    
+    # 2. Проверяем, записана ли она в конфиг, если нет — записываем (для автозагрузки)
+    if ! grep -q "vm.overcommit_memory = 1" /etc/sysctl.conf; then
+        echo "vm.overcommit_memory = 1" >> /etc/sysctl.conf
+        info "➕ Добавлено vm.overcommit_memory = 1 в /etc/sysctl.conf"
+    else
+        info "👌 Настройка уже есть в конфиге."
+    fi
+    
+    info "✅ Параметры ядра настроены."
+}
+
+
+# --- 4. ГЕНЕРАЦИЯ КЛЮЧЕЙ ---
 generate_keys() {
     info "--- ГЕНЕРАЦИЯ КЛЮЧЕЙ ---"
     
@@ -98,7 +118,7 @@ generate_keys() {
     rm -f "$KEY_PATH" "${KEY_PATH}.ppk" "${KEY_PATH}.pub"
 }
 
-# --- 4. ФАЕРВОЛ ---
+# --- 5. ФАЕРВОЛ ---
 setup_firewall() {
     info "--- НАСТРОЙКА UFW ---"
     
@@ -119,7 +139,7 @@ setup_firewall() {
     info "✅ Порты 22, 80, 443 открыты."
 }
 
-# --- 5. SSH HARDENING (ROOT) ---
+# --- 6. SSH HARDENING (ROOT) ---
 harden_ssh() {
     info "--- НАСТРОЙКА SSH ---"
     warn "ВНИМАНИЕ: Парольный вход будет отключен!"
@@ -137,7 +157,7 @@ harden_ssh() {
     info "✅ SSH настроен: Root разрешен (только ключи), пароли отключены."
 }
 
-# --- 6. DOCKER ---
+# --- 7. DOCKER ---
 install_docker() {
     info "--- УСТАНОВКА DOCKER ---"
     if ! command -v docker &> /dev/null; then
@@ -150,7 +170,7 @@ install_docker() {
     fi
 }
 
-# --- 7. FAIL2BAN ---
+# --- 8. FAIL2BAN ---
 install_fail2ban() {
     info "--- FAIL2BAN ---"
     apt-get install -y fail2ban
@@ -173,7 +193,8 @@ ask_yes_no "Начать настройку сервера (Root, Keys, UFW, Swa
 if [[ "$CONFIRM" == "n" ]]; then exit 0; fi
 
 update_system
-configure_swap    # <--- Добавлен запуск Swap
+configure_swap
+tune_kernel    
 generate_keys
 setup_firewall
 install_docker
