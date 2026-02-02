@@ -13,6 +13,7 @@ set -e
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 RED='\033[1;31m'
+CYAN='\033[1;36m'
 NC='\033[0m' # No Color
 
 info() { echo -e "${GREEN}[INFO]${NC} $1"; }
@@ -39,7 +40,7 @@ update_system() {
     apt-get -y autoremove
     
     # Установка утилиты для конвертации ключей и Midnight Commander (MC)
-    apt-get install -y putty-tools mc
+    apt-get install -y putty-tools mc curl git
     
     info "Система обновлена, MC установлен."
 }
@@ -209,14 +210,28 @@ echo -e "${GREEN}==========================================================${NC}
 echo -e "${GREEN}   НАСТРОЙКА ЗАВЕРШЕНА УСПЕШНО${NC}"
 echo -e "${GREEN}==========================================================${NC}"
 echo ""
-echo "IP сервера: $(curl -s4 https://ifconfig.me)"
-echo "Пользователь: root"
-echo "Порт SSH: 22"
-echo "Swap: Активен (2GB)"
+# Основная информация
+echo -e "${CYAN}--- ОСНОВНЫЕ ДАННЫЕ ---${NC}"
+echo "IP сервера:     $(curl -s4 https://ifconfig.me)"
+echo "Пользователь:   root"
+echo "Порт SSH:       22"
 echo ""
-echo -e "${YELLOW}!!! СКОПИРУЙТЕ КЛЮЧИ ПРЯМО СЕЙЧАС !!!${NC}"
-echo "Ключи удалены с диска. Если вы закроете окно без сохранения,"
-echo "доступ к серверу будет потерян навсегда."
+
+# Детальный отчет о конфигурации
+echo -e "${CYAN}--- ДЕТАЛИ КОНФИГУРАЦИИ ---${NC}"
+echo "✅ Система:        Обновлена (apt update & upgrade)"
+echo "✅ Утилиты:        Установлены (mc, putty-tools, curl, git)"
+echo "✅ Docker:         Установлен и активен"
+echo "✅ Swap-файл:      Активен (2GB) и добавлен в автозагрузку"
+echo "✅ Ядро (Kernel):  vm.overcommit_memory = 1 (Redis Fix применен)"
+echo "✅ Firewall (UFW): Включен. Открыты порты: 22, 80, 443"
+echo "✅ SSH Security:   Вход по паролю ОТКЛЮЧЕН. Только ключи."
+echo "✅ Fail2Ban:       Активен (мониторинг SSH, бан после 3 попыток)"
+echo ""
+
+echo -e "${YELLOW}!!! ВНИМАНИЕ: СКОПИРУЙТЕ КЛЮЧИ ПРЯМО СЕЙЧАС !!!${NC}"
+echo "Ключи были сгенерированы и удалены с диска в целях безопасности."
+echo "Если вы закроете это окно без сохранения, доступ будет утерян."
 echo ""
 echo "----------------------------------------------------------"
 echo "PRIVATE KEY (OpenSSH) - Для Coolify / Linux / Mac:"
