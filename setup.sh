@@ -40,6 +40,12 @@ update_system() {
     # Установка утилиты для конвертации ключей
     apt-get install -y putty-tools
     info "Система обновлена."
+	
+	# Установка утилиты для конвертации ключей и Midnight Commander (MC)
+    # - Добавлено mc в список установки
+    apt-get install -y putty-tools mc
+    
+    info "Система обновлена, MC установлен."
 }
 
 # --- 2. НАСТРОЙКА SWAP (Новая функция) ---
