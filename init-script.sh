@@ -325,4 +325,14 @@ chown -R www-data:www-data /var/www/html
 chmod -R 775 wp-content
 chmod 640 /var/www/html/wp-config.php
 
+# --- НАСТРОЙКА NGINX HELPER (ПУТЬ К КЭШУ) ---
+echo "⚙️ Настраиваю путь кэша для Nginx Helper..."
+
+# Проверяем, нет ли уже такой настройки, чтобы не дублировать
+if ! grep -q "RT_WP_NGINX_HELPER_CACHE_PATH" /var/www/html/wp-config.php; then
+    # Вставляем строку перед комментарием "Stop editing"
+    sed -i "/Stop editing/i define( 'RT_WP_NGINX_HELPER_CACHE_PATH', '/var/run/nginx-cache/' );" /var/www/html/wp-config.php
+    echo "✅ Путь к кэшу прописан в wp-config.php"
+fi
+
 echo "🎉 Полная конфигурация завершена."
