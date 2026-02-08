@@ -94,6 +94,11 @@ if ! grep -q "HTTP_X_FORWARDED_PROTO" /var/www/html/wp-config.php; then
     sed -i "1a if (isset(\$_SERVER['HTTP_X_FORWARDED_PROTO']) && strpos(\$_SERVER['HTTP_X_FORWARDED_PROTO'], 'https') !== false) { \$_SERVER['HTTPS'] = 'on'; }" /var/www/html/wp-config.php
 fi
 
+# --- C. Настройка Nginx Helper (Путь к кэшу) ---
+# Указываем плагину, что кэш лежит в RAM (tmpfs), а не на диске
+set_config_string_force RT_WP_NGINX_HELPER_CACHE_PATH '/var/run/nginx-cache/'
+
+
 # ==============================================================================
 # 4. MU-PLUGINS (ЗАЩИТА REST API) - ВЫПОЛНЯЕТСЯ ВСЕГДА
 # ==============================================================================
@@ -327,12 +332,5 @@ chmod 640 /var/www/html/wp-config.php
 
 # --- НАСТРОЙКА NGINX HELPER (ПУТЬ К КЭШУ) ---
 echo "⚙️ Настраиваю путь кэша для Nginx Helper..."
-
-# Проверяем, нет ли уже такой настройки, чтобы не дублировать
-if ! grep -q "RT_WP_NGINX_HELPER_CACHE_PATH" /var/www/html/wp-config.php; then
-    # Вставляем строку перед комментарием "Stop editing"
-    sed -i "/Stop editing/i define( 'RT_WP_NGINX_HELPER_CACHE_PATH', '/var/run/nginx-cache/' );" /var/www/html/wp-config.php
-    echo "✅ Путь к кэшу прописан в wp-config.php"
-fi
 
 echo "🎉 Полная конфигурация завершена."
