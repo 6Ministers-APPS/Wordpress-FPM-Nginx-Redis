@@ -65,7 +65,7 @@ services:
 
   nginx:
     image: fholzer/nginx-brotli:latest
-    command: /bin/sh -c "umask 0000; nginx -g 'daemon off;'"
+    entrypoint: /bin/sh -c "umask 0000; nginx -g 'daemon off;'"
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html
