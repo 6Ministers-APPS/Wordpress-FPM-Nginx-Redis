@@ -25,17 +25,16 @@ services:
       - WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
     depends_on:
       - mariadb
-    command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"  
+    command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1"]
+      test: [ "CMD-SHELL", "test -f /var/www/html/wp-config.php" ]
       interval: 2s
       timeout: 10s
       retries: 10
 
-# --- НОВЫЙ СЕРВИС: WP-CRON (Sidecar) ---
+  # --- НОВЫЙ СЕРВИС: WP-CRON (Sidecar) ---
   wp-cron:
     build: .
-    container_name: wp_cron_worker
     restart: unless-stopped
     volumes:
       # Подключаем те же файлы, чтобы WP-CLI видел код сайта и wp-config.php
@@ -51,11 +50,7 @@ services:
       - mariadb
       - wordpress
     entrypoint: >
-      sh -c "
-      echo '⏳ Жду инициализации базы и конфига...' &&
-      sleep 20 &&
-      echo '🚀 Запуск WP-Cron Worker...' &&
-      while true; do
+      sh -c " echo '⏳ Жду инициализации базы и конфига...' && sleep 20 && echo '🚀 Запуск WP-Cron Worker...' && while true; do
         # Запускаем крон через CLI. --allow-root нужен, так как контейнер стартует от рута.
         # > /dev/null гасит вывод, чтобы не засорять логи, если задач нет.
         wp cron event run --due-now --allow-root --path=/var/www/html > /dev/null 2>&1
@@ -73,7 +68,7 @@ services:
       - fastcgi_cache:/var/run/nginx-cache
     depends_on:
       - wordpress
-      
+
   mariadb:
     image: mariadb:11
     volumes:
@@ -81,53 +76,53 @@ services:
       - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
       - ./create-readonly-user.sh:/docker-entrypoint-initdb.d/init-readonly.sh
     ports:
-      - "127.0.0.1:3306:3306"    
+      - "127.0.0.1:3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=$SERVICE_PASSWORD_ROOT
       - MYSQL_DATABASE=wordpress
       - MYSQL_USER=$SERVICE_USER_WORDPRESS
       - MYSQL_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
-      - READONLY_PASSWORD=${READONLY_DB_PASSWORD}     
+      - READONLY_PASSWORD=${READONLY_DB_PASSWORD}
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
       interval: 5s
       timeout: 20s
       retries: 10
- 
+
   redis:
     image: redis:latest
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - ./redis-data:/data
-    command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
+    command: [ "redis-server", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no" ]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
       timeout: 10s
-      retries: 5      
+      retries: 5
 
   phpmyadmin:
-      image: lscr.io/linuxserver/phpmyadmin:latest
-      depends_on:
-        - mariadb
-      ports:
-        - "8070:80"      
-      environment:
-        - PMA_HOST=mariadb
-        - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
-        - PUID=1000
-        - PGID=1000
-        - TZ=Europe/Moscow
-        - PMA_ARBITRARY=1
-        - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
-      volumes:
-        - ./phpmyadmin-config:/config
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://127.0.0.1:80"]
-        interval: 2s
-        timeout: 10s
-        retries: 15    
+    image: lscr.io/linuxserver/phpmyadmin:latest
+    depends_on:
+      - mariadb
+    ports:
+      - "8070:80"
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Moscow
+      - PMA_ARBITRARY=1
+      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
+    volumes:
+      - ./phpmyadmin-config:/config
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:80" ]
+      interval: 2s
+      timeout: 10s
+      retries: 15
 
 # 👇 ИСПРАВЛЕНИЕ: Убраны отступы, блок прижат влево
 volumes:
