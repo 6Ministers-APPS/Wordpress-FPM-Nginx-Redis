@@ -27,7 +27,7 @@ services:
       - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
-      test: [ "CMD-SHELL", "test -f /var/www/html/wp-config.php" ]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1"]
       interval: 2s
       timeout: 10s
       retries: 10
@@ -35,6 +35,7 @@ services:
   # --- НОВЫЙ СЕРВИС: WP-CRON (Sidecar) ---
   wp-cron:
     build: .
+    container_name: wp_cron_worker
     restart: unless-stopped
     volumes:
       # Подключаем те же файлы, чтобы WP-CLI видел код сайта и wp-config.php
@@ -84,7 +85,7 @@ services:
       - MYSQL_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - READONLY_PASSWORD=${READONLY_DB_PASSWORD}
     healthcheck:
-      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1"]
       interval: 5s
       timeout: 20s
       retries: 10
@@ -95,7 +96,7 @@ services:
       - "127.0.0.1:6379:6379"
     volumes:
       - ./redis-data:/data
-    command: [ "redis-server", "--maxmemory", "512mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no" ]
+    command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
