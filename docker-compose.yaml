@@ -61,7 +61,17 @@ services:
 
   nginx:
     image: fholzer/nginx-brotli:latest
-    entrypoint: /bin/sh -c "umask 0000; nginx -g 'daemon off;'"
+    entrypoint: >
+      /bin/sh -c "
+      deluser xfs 2>/dev/null || true;
+      delgroup xfs 2>/dev/null || true;
+      addgroup -g 33 wpuser 2>/dev/null || true;
+      adduser -u 33 -D -H -G wpuser wpuser 2>/dev/null || true;
+      sed -i -E 's/user\s+[a-zA-Z0-9_]+;/user wpuser;/' /etc/nginx/nginx.conf || true;
+      chown -R 33:33 /var/run/nginx-cache 2>/dev/null || true;
+      umask 0000;
+      nginx -g 'daemon off;'
+      "
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html

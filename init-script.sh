@@ -95,34 +95,6 @@ if ! grep -q "HTTP_X_FORWARDED_PROTO" /var/www/html/wp-config.php; then
 fi
 
 
-# ==============================================================================
-# 4. MU-PLUGINS (ЗАЩИТА REST API) - ВЫПОЛНЯЕТСЯ ВСЕГДА
-# ==============================================================================
-echo "🛡 Обновление MU-плагинов безопасности..."
-mkdir -p /var/www/html/wp-content/mu-plugins
-
-# 1. Защита от перебора
-cat <<EOT > /var/www/html/wp-content/mu-plugins/disable-user-enum.php
-<?php
-/* Plugin Name: Stop User Enumeration */
-add_filter( 'rest_endpoints', function( \$endpoints ) {
-    if ( ! is_user_logged_in() ) {
-        if ( isset( \$endpoints['/wp/v2/users'] ) ) unset( \$endpoints['/wp/v2/users'] );
-        if ( isset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] ) ) unset( \$endpoints['/wp/v2/users/(?P<id>[\d]+)'] );
-    }
-    return \$endpoints;
-});
-EOT
-
-# 2. Скрытие ссылок и отключение Application Passwords
-cat <<EOT > /var/www/html/wp-content/mu-plugins/hide-rest-links.php
-<?php
-/* Plugin Name: Hide REST API Links & Disable App Passwords */
-remove_action('xmlrpc_rsd_apis', 'rest_output_rsd');
-remove_action('wp_head', 'rest_output_link_wp_head');
-remove_action('template_redirect', 'rest_output_link_header', 11, 0);
-add_filter('wp_is_application_passwords_available', '__return_false');
-EOT
 
 # ==============================================================================
 # 5. S3 UPLOADS (КОД ПЛАГИНА) - ВЫПОЛНЯЕТСЯ ВСЕГДА (ОБНОВЛЕНИЕ)
@@ -153,6 +125,7 @@ EOT
 
     # --- B. MU-Plugin для Beget (перезаписываем всегда) ---
     echo "🔌 Обновляю адаптер Beget..."
+    mkdir -p /var/www/html/wp-content/mu-plugins
     cat <<EOT > /var/www/html/wp-content/mu-plugins/s3-endpoint.php
 <?php
 /* Plugin Name: S3 Custom Endpoint (Beget Support) */
@@ -328,5 +301,9 @@ chmod 640 /var/www/html/wp-config.php
 
 # --- НАСТРОЙКА NGINX HELPER (ПУТЬ К КЭШУ) ---
 echo "⚙️ Настраиваю путь кэша для Nginx Helper..."
+set_config_string_force RT_WP_NGINX_HELPER_CACHE_PATH "/var/run/nginx-cache"
+wp plugin activate nginx-helper redis-cache --allow-root --path=/var/www/html || true
+wp redis enable --allow-root --path=/var/www/html || true
+wp option update rt_wp_nginx_helper_options '{"enable_purge":"1","enable_map":"0","enable_log":"0","log_level":"INFO","log_filesize":"5","enable_stamp":"0","purge_homepage_on_edit":"1","purge_homepage_on_del":"1","purge_archive_on_edit":"1","purge_archive_on_del":"1","purge_archive_on_new_comment":"0","purge_archive_on_deleted_comment":"0","purge_page_on_mod":"1","purge_page_on_new_comment":"1","purge_page_on_deleted_comment":"1","purge_method":"unlink_files"}' --format=json --allow-root --path=/var/www/html || true
 
 echo "🎉 Полная конфигурация завершена."
