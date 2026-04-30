@@ -153,7 +153,7 @@ harden_ssh() {
     sed -i 's/^#\?PubkeyAuthentication .*/PubkeyAuthentication yes/' "$SSHD_CONFIG"
     sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' "$SSHD_CONFIG"
     sed -i 's/^#\?ChallengeResponseAuthentication .*/ChallengeResponseAuthentication no/' "$SSHD_CONFIG"
-    sed -i 's/^#\?UsePAM .*/UsePAM no/' "$SSHD_CONFIG"
+    sed -i 's/^#\?UsePAM .*/UsePAM yes/' "$SSHD_CONFIG"
 
     systemctl restart ssh
     info "✅ SSH настроен: Root разрешен (только ключи), пароли отключены."
