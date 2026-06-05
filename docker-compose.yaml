@@ -14,7 +14,7 @@ services:
       - fastcgi_cache:/var/run/nginx-cache
     environment:
       - SERVICE_FQDN_WORDPRESS
-      - WORDPRESS_DB_HOST=mariadb
+      - WORDPRESS_DB_HOST=${DB_CONTAINER_NAME:-mariadb}
       - WORDPRESS_DB_USER=$SERVICE_USER_WORDPRESS
       - WORDPRESS_DB_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - WORDPRESS_DB_NAME=wordpress
@@ -43,7 +43,7 @@ services:
       - ./php/wp-php.ini:/usr/local/etc/php/conf.d/wp-php.ini
     environment:
       # Передаем доступы к БД, так как WP-CLI запускает PHP и должен подключаться к базе
-      - WORDPRESS_DB_HOST=mariadb
+      - WORDPRESS_DB_HOST=${DB_CONTAINER_NAME:-mariadb}
       - WORDPRESS_DB_USER=$SERVICE_USER_WORDPRESS
       - WORDPRESS_DB_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - WORDPRESS_DB_NAME=wordpress
@@ -82,12 +82,13 @@ services:
 
   mariadb:
     image: mariadb:11
+    container_name: ${DB_CONTAINER_NAME:-mariadb}
     volumes:
       - ./mariadb-data:/var/lib/mysql
       - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
       - ./create-readonly-user.sh:/docker-entrypoint-initdb.d/init-readonly.sh
-    ports:
-      - "127.0.0.1:3306:3306"
+    # ports:
+    #  - "127.0.0.1:3306:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=$SERVICE_PASSWORD_ROOT
       - MYSQL_DATABASE=wordpress
@@ -102,8 +103,8 @@ services:
 
   redis:
     image: redis:latest
-    ports:
-      - "127.0.0.1:6379:6379"
+    # ports:
+    #  - "127.0.0.1:6379:6379"
     volumes:
       - ./redis-data:/data
     command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
@@ -113,27 +114,27 @@ services:
       timeout: 10s
       retries: 5
 
-  phpmyadmin:
-    image: lscr.io/linuxserver/phpmyadmin:latest
-    depends_on:
-      - mariadb
-    ports:
-      - "8070:80"
-    environment:
-      - PMA_HOST=mariadb
-      - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Moscow
-      - PMA_ARBITRARY=1
-      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
-    volumes:
-      - ./phpmyadmin-config:/config
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://127.0.0.1:80" ]
-      interval: 2s
-      timeout: 10s
-      retries: 15
+#  phpmyadmin:
+#    image: lscr.io/linuxserver/phpmyadmin:latest
+#    depends_on:
+#      - mariadb
+#    ports:
+#      - "8070:80"
+#    environment:
+#      - PMA_HOST=mariadb
+#      - PMA_PASSWORD=$SERVICE_PASSWORD_ROOT
+#      - PUID=1000
+#      - PGID=1000
+#      - TZ=Europe/Moscow
+#      - PMA_ARBITRARY=1
+#      - PMA_ABSOLUTE_URI=$SERVICE_FQDN_WORDPRESS
+#    volumes:
+#      - ./phpmyadmin-config:/config
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://127.0.0.1:80" ]
+#      interval: 2s
+#      # timeout: 10s
+#      # retries: 15
 
 # 👇 ИСПРАВЛЕНИЕ: Убраны отступы, блок прижат влево
 volumes:
