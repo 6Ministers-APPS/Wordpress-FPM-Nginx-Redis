@@ -68,9 +68,9 @@ services:
       addgroup -g 33 wpuser 2>/dev/null || true;
       adduser -u 33 -D -H -G wpuser wpuser 2>/dev/null || true;
       sed -i -E 's/user\s+[a-zA-Z0-9_]+;/user wpuser;/' /etc/nginx/nginx.conf || true;
-      chmod 1777 /var/run/nginx-cache;
-      for d in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do mkdir -p /var/run/nginx-cache/\$d && chmod 1777 /var/run/nginx-cache/\$d; done;
+      for d in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do mkdir -p /var/run/nginx-cache/\$d; done;
       chown -R 33:33 /var/run/nginx-cache 2>/dev/null || true;
+      chmod -R 1777 /var/run/nginx-cache;
       umask 0000;
       nginx -g 'daemon off;'
       "
