@@ -12,9 +12,18 @@ else
     echo "👌 Папка кэша уже существует."
 fi
 
-# 777 нужны, так как Nginx и WP могут работать от разных пользователей
-chmod 777 "$CACHE_DIR"
-echo "🔓 Права 777 для кэша установлены."
+# 1777 нужны, так как Nginx и WP могут работать от разных пользователей
+chmod 1777 "$CACHE_DIR"
+chmod -R 1777 "$CACHE_DIR" 2>/dev/null || true
+echo "🔓 Права 1777 для кэша установлены."
+
+# Фоновый процесс: nginx создаёт поддиректории кеша с 0700,
+# PHP-FPM не может их удалять. Каждые 30 сек исправляем права.
+(while true; do
+    find "$CACHE_DIR" -type d ! -perm 1777 -exec chmod 1777 {} + 2>/dev/null
+    sleep 30
+done) &
+echo "🔄 Фоновый фикс прав кэша запущен."
 
 # ==============================================================================
 # 1. ЖДЕМ WORDPRESS
@@ -208,6 +217,7 @@ if [ ! -f "$MARKER" ]; then
     set_config_string_once S3_UPLOADS_SECRET ""
     set_config_string_once S3_UPLOADS_REGION ""
     set_config_string_once S3_UPLOADS_ENDPOINT ""
+    set_config_string_once S3_UPLOADS_BUCKET_URL ""
 
     # --- D. Лимиты и Ядро ---
     set_config_string_force WP_MEMORY_LIMIT "512M"
