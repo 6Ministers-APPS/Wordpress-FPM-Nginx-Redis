@@ -106,36 +106,57 @@ fi
 
 
 # ==============================================================================
-# 5. S3 UPLOADS (КОД ПЛАГИНА) - ВЫПОЛНЯЕТСЯ ВСЕГДА (ОБНОВЛЕНИЕ)
+# 5. S3 UPLOADS (КОД ПЛАГИНА) - ВЫПОЛНЯЕТСЯ ВСЕГДА (ОБНОВЛЕНИЕ, БЕЗОПАСНО)
 # ==============================================================================
+# Важно: старую рабочую установку не трогаем, пока новая версия не скачана
+# и не проверена целиком — иначе при сбое сети (или недоступности GitHub)
+# сайт остаётся без S3-Uploads вообще, а wp-cli.yml — со ссылкой на
+# несуществующий файл (падает КАЖДЫЙ вызов `wp`, в т.ч. в wp-cron sidecar).
 echo "☁️ Проверка и обновление S3-Uploads..."
 cd /var/www/html/wp-content/plugins
 
 # Версия плагина (меняйте тут для обновления)
 S3_VERSION="3.0.10"
 
-# Удаляем старую версию, чтобы накатить новую (Clean Install)
-rm -rf s3-uploads
-rm -f s3-uploads.zip
+rm -f s3-uploads-new.zip
+rm -rf s3-uploads-staging
 
 echo "⬇️ Скачиваю S3-Uploads ($S3_VERSION)..."
-wget -q "https://github.com/humanmade/S3-Uploads/releases/download/$S3_VERSION/manual-install.zip" -O "s3-uploads.zip"
+wget -q "https://github.com/humanmade/S3-Uploads/releases/download/$S3_VERSION/manual-install.zip" -O "s3-uploads-new.zip"
 
-if [ -s "s3-uploads.zip" ]; then
-    unzip -q "s3-uploads.zip" && rm "s3-uploads.zip"
-    if [ -d "S3-Uploads-${S3_VERSION#v}" ]; then mv "S3-Uploads-${S3_VERSION#v}" "s3-uploads"; fi
-    
-    # --- A. Настройка WP-CLI (перезаписываем всегда) ---
-    echo "⚙️ Обновляю wp-cli.yml..."
-    cat <<EOT > /var/www/html/wp-cli.yml
+if [ -s "s3-uploads-new.zip" ]; then
+    mkdir -p s3-uploads-staging
+    unzip -q "s3-uploads-new.zip" -d s3-uploads-staging && rm "s3-uploads-new.zip"
+
+    # Имя папки внутри архива может отличаться между релизами — берём то, что реально распаковалось
+    EXTRACTED_DIR=$(find s3-uploads-staging -mindepth 1 -maxdepth 1 -type d | head -n 1)
+    if [ -z "$EXTRACTED_DIR" ]; then EXTRACTED_DIR="s3-uploads-staging"; fi
+
+    # Не доверяем ожидаемому пути вслепую — проверяем, что нужный файл реально на месте
+    if [ -f "$EXTRACTED_DIR/inc/class-wp-cli-command.php" ]; then
+        echo "✅ Новая версия S3-Uploads скачана и проверена, переключаюсь..."
+
+        # --- Чистим ЛЮБЫЕ старые установки (папочную и «плоскую» — обе могли остаться от прошлых сбоев) ---
+        wp plugin deactivate s3-uploads --allow-root --path=/var/www/html 2>/dev/null || true
+        wp plugin deactivate s3-uploads.php --allow-root --path=/var/www/html 2>/dev/null || true
+        rm -rf s3-uploads
+        rm -f s3-uploads.php
+        rm -rf inc
+
+        mv "$EXTRACTED_DIR" s3-uploads
+        rm -rf s3-uploads-staging
+
+        # --- A. Настройка WP-CLI (путь всегда соответствует реально проверенной структуре) ---
+        echo "⚙️ Обновляю wp-cli.yml..."
+        cat <<EOT > /var/www/html/wp-cli.yml
 require:
   - wp-content/plugins/s3-uploads/inc/class-wp-cli-command.php
 EOT
 
-    # --- B. MU-Plugin для Beget (перезаписываем всегда) ---
-    echo "🔌 Обновляю адаптер Beget..."
-    mkdir -p /var/www/html/wp-content/mu-plugins
-    cat <<EOT > /var/www/html/wp-content/mu-plugins/s3-endpoint.php
+        # --- B. MU-Plugin для Beget (перезаписываем всегда) ---
+        echo "🔌 Обновляю адаптер Beget..."
+        mkdir -p /var/www/html/wp-content/mu-plugins
+        cat <<EOT > /var/www/html/wp-content/mu-plugins/s3-endpoint.php
 <?php
 /* Plugin Name: S3 Custom Endpoint (Beget Support) */
 add_filter( 's3_uploads_s3_client_params', function ( \$params ) {
@@ -147,15 +168,20 @@ add_filter( 's3_uploads_s3_client_params', function ( \$params ) {
     return \$params;
 });
 EOT
-    
-    # Ручное включение (Ваш запрос: S3_UPLOADS_AUTOENABLE = false)
-    # Используем тип 'constant', чтобы записать false без кавычек. Используем set_config_once, чтобы не сбить, если вы поменяете на true.
-    set_config_once S3_UPLOADS_AUTOENABLE "false"
 
-    # Активация
-    wp plugin activate s3-uploads --allow-root --path=/var/www/html
+        # Ручное включение (Ваш запрос: S3_UPLOADS_AUTOENABLE = false)
+        # Используем тип 'constant', чтобы записать false без кавычек. Используем set_config_once, чтобы не сбить, если вы поменяете на true.
+        set_config_once S3_UPLOADS_AUTOENABLE "false"
+
+        # Активация
+        wp plugin activate s3-uploads --allow-root --path=/var/www/html
+    else
+        echo "❌ В скачанном архиве не найден class-wp-cli-command.php по ожидаемому пути — установка отменена, текущая рабочая версия плагина и wp-cli.yml не тронуты."
+        rm -rf s3-uploads-staging
+    fi
 else
-    echo "❌ Ошибка скачивания S3-Uploads"
+    echo "❌ Ошибка скачивания S3-Uploads — текущая установленная версия и wp-cli.yml оставлены без изменений."
+    rm -f s3-uploads-new.zip
 fi
 
 # Возвращаемся в корень
