@@ -53,8 +53,9 @@ services:
     entrypoint: >
       sh -c " echo '⏳ Жду инициализации базы и конфига...' && sleep 20 && echo '🚀 Запуск WP-Cron Worker...' && while true; do
         # Запускаем крон через CLI. --allow-root нужен, так как контейнер стартует от рута.
-        # > /dev/null гасит вывод, чтобы не засорять логи, если задач нет.
-        wp cron event run --due-now --allow-root --path=/var/www/html > /dev/null 2>&1
+        # ВРЕМЕННО: вывод не подавляется, чтобы увидеть ошибки в логах (диагностика).
+        echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Running wp cron event run...\"
+        wp cron event run --due-now --allow-root --path=/var/www/html
         sleep 60
       done"
   # ---------------------------------------
