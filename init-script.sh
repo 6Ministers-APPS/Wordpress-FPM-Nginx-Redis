@@ -197,7 +197,7 @@ if [ ! -f "$MARKER" ]; then
 
     # --- A. Конфигурация Redis ---
     echo "⚙️ Настраиваю Redis..."
-    set_config_string_once WP_REDIS_HOST "redis"
+    set_config_string_once WP_REDIS_HOST "${WP_REDIS_HOST:-wp_redis}"
     set_config_once        WP_REDIS_PORT 6379
     set_config_once        WP_REDIS_TIMEOUT 1
     set_config_once        WP_REDIS_READ_TIMEOUT 1

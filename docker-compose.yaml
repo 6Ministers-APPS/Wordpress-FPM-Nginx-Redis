@@ -23,6 +23,7 @@ services:
       - WP_DEBUG=${WP_DEBUG:-false}
       - WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
       - WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
+      - WP_REDIS_HOST=${REDIS_CONTAINER_NAME:-wp_redis}
     depends_on:
       - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
@@ -35,7 +36,7 @@ services:
   # --- НОВЫЙ СЕРВИС: WP-CRON (Sidecar) ---
   wp-cron:
     build: .
-    container_name: wp_cron_worker
+    container_name: ${CRON_CONTAINER_NAME:-wp_cron_worker}
     restart: unless-stopped
     volumes:
       # Подключаем те же файлы, чтобы WP-CLI видел код сайта и wp-config.php
@@ -107,7 +108,7 @@ services:
 
   wp_redis:
     image: redis:latest
-    container_name: wp_redis
+    container_name: ${REDIS_CONTAINER_NAME:-wp_redis}
     # ports:
     #  - "127.0.0.1:6379:6379"
     volumes:
