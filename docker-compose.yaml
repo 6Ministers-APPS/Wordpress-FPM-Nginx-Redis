@@ -62,6 +62,8 @@ services:
 
   nginx:
     image: fholzer/nginx-brotli:latest
+    expose:
+      - "80"
     environment:
       - SERVICE_FQDN_WORDPRESS
     entrypoint: >
