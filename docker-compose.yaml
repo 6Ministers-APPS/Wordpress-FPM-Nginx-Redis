@@ -24,6 +24,16 @@ services:
       - WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
       - WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
       - WP_REDIS_HOST=${REDIS_CONTAINER_NAME:-wp_redis}
+      # --- Ресурсы (профили «обычный» / «нагруженный» — см. README). Переопределяются в Coolify. ---
+      # Лимит памяти PHP-процесса и потолок воркеров FPM (читаются из php/wp-php.ini и php-fpm-tuning.conf)
+      - PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-256M}
+      - PHP_FPM_MAX_CHILDREN=${PHP_FPM_MAX_CHILDREN:-5}
+      - OPCACHE_MEMORY=${OPCACHE_MEMORY:-128}
+      # Записываются в wp-config.php при каждом старте (init-script.sh); админка поднимается до WP_MAX_MEMORY_LIMIT
+      - WP_MEMORY_LIMIT=${WP_MEMORY_LIMIT:-256M}
+      - WP_MAX_MEMORY_LIMIT=${WP_MAX_MEMORY_LIMIT:-512M}
+    # Потолок памяти контейнера (OPcache и воркеры PHP считаются здесь же)
+    mem_limit: ${WORDPRESS_MEM_LIMIT:-768m}
     restart: unless-stopped
     depends_on:
       mariadb:
@@ -32,7 +42,8 @@ services:
     healthcheck:
       # ping.path в php-fpm-tuning.conf; проверяем, что FPM реально отвечает, а не только что конфиг валиден
       test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect /var/run/php/php-fpm.sock | grep -q pong || exit 1"]
-      interval: 10s
+      # ondemand: каждая проверка поднимает воркер, интервал меньше process_idle_timeout держит один воркер живым — реже не нужно
+      interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
@@ -52,6 +63,9 @@ services:
       - WORDPRESS_DB_USER=$SERVICE_USER_WORDPRESS
       - WORDPRESS_DB_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - WORDPRESS_DB_NAME=wordpress
+      # те же переменные, что у wordpress: php/wp-php.ini подставляет их и в CLI
+      - PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-256M}
+      - OPCACHE_MEMORY=${OPCACHE_MEMORY:-128}
       # uid 33 не имеет домашней директории — кэш и конфиг WP-CLI кладём в /tmp
       - HOME=/tmp
       - WP_CLI_CACHE_DIR=/tmp/wp-cli-cache
@@ -60,6 +74,7 @@ services:
         condition: service_healthy
       wordpress:
         condition: service_healthy
+    mem_limit: ${CRON_MEM_LIMIT:-256m}
     # Работает не от root: файлы, созданные кроном, должны быть доступны PHP-FPM (www-data, uid 33).
     user: "33:33"
     entrypoint: >
@@ -100,6 +115,8 @@ services:
       - ./wordpress-files:/var/www/html
       - fastcgi_cache:/var/run/nginx-cache
       - php_socket:/var/run/php
+    # Потолок включает tmpfs-кэш (128M, он считается в память контейнера) + сам nginx
+    mem_limit: 192m
     restart: unless-stopped
     # access/error логи nginx идут в stdout/stderr; ротация средствами Docker
     logging:
@@ -115,6 +132,11 @@ services:
     image: mariadb:11
     container_name: ${DB_CONTAINER_NAME:-mariadb}
     restart: unless-stopped
+    # Буфер InnoDB и число соединений — из окружения (остальное в my.cnf); аргументы командной строки приоритетнее my.cnf
+    command:
+      - --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE:-192M}
+      - --max-connections=${DB_MAX_CONNECTIONS:-60}
+    mem_limit: ${DB_MEM_LIMIT:-512m}
     volumes:
       - ./mariadb-data:/var/lib/mysql
       - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
@@ -140,7 +162,9 @@ services:
     restart: unless-stopped
     # ports:
     #  - "127.0.0.1:6379:6379"
-    command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
+    # maxmemory + ~60 МБ накладных = mem_limit; сохранение на диск выключено — это чистый кэш
+    mem_limit: ${REDIS_MEM_LIMIT:-128m}
+    command: ["redis-server", "--maxmemory", "${REDIS_MAXMEMORY:-64mb}", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
@@ -178,6 +202,6 @@ volumes:
     driver_opts:
       type: tmpfs
       device: tmpfs
-      # size=256M: Лимит памяти
+      # size=128M: лимит памяти (чуть выше max_size=110m в nginx.conf)
       # uid=33,gid=33: владелец www-data (совпадает с nginx worker и PHP-FPM)
-      o: "size=256M,mode=0755,uid=33,gid=33"
+      o: "size=128M,mode=0755,uid=33,gid=33"

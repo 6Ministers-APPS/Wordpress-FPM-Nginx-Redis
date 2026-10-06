@@ -66,17 +66,38 @@ docker ps -a --filter name=nginx-sq1uh --format '{{.Status}}'; docker logs --tai
 - [x] 3.4 Безопасность: `limit_req` на `wp-login.php`; заголовки с `always` для всех location (убран устаревший `X-XSS-Protection`, добавлен `Referrer-Policy`; `Permissions-Policy` не добавляли: `camera=()`/`payment=()` ломают встроенные видеозвонки и платёжные формы Fluent); ротация логов `./logs/nginx` или вывод в stdout.
 - [x] 3.5 Unix-сокет между nginx и PHP-FPM через общий volume.
 
-## Этап 4. PHP-FPM, OPcache, MariaDB, Redis (числа под 8 сайтов на 12 ГБ)
+## Этап 4. PHP-FPM, OPcache, MariaDB, Redis (расчёт под 7 сайтов на 12 ГБ)
 
-Все значения вынести в переменные окружения Coolify, чтобы тяжёлому сайту их можно было поднять без правки файлов.
+Сделано в коде (значения по умолчанию = профиль «обычный», всё переопределяется переменными окружения в Coolify):
 
-- [ ] 4.1 PHP: `memory_limit` 1024M → 256M (`WP_MAX_MEMORY_LIMIT` 512M для админки); единые таймауты — 60s для фронта и отдельный `location /wp-admin/` на 300s для бэкапов/импорта; логи PHP в stderr.
-- [ ] 4.2 FPM: `pm = ondemand`, `max_children = 6`, `process_idle_timeout = 30s`, `max_requests = 500`, slowlog.
-- [ ] 4.3 OPcache: 512M → 128M, JIT выключить, `revalidate_freq 60` (или `validate_timestamps=0` со сбросом при деплое), `save_comments=1`.
-- [ ] 4.4 MariaDB: `innodb_buffer_pool_size` 1G → 256M (уточнить по размерам БД из 0.2), `innodb_log_file_size` = 25% пула, `table_open_cache`, `thread_cache_size`, `slow_query_log` (`long_query_time=1`).
-- [ ] 4.5 Redis: `maxmemory` 512M → 128M (уточнить по `used_memory`); tmpfs-кэш nginx 256M → 128M.
-- [ ] 4.6 Лимиты контейнеров (`mem_limit`): wordpress 1G, mariadb 512M, redis 160M, nginx 64M.
-  - Проверка через сутки: `docker stats`, swap ≈ 0. Нагрузочный тест `hey`/`ab` на некэшированную страницу до и после.
+- [x] 4.1 PHP: `memory_limit` 256M, `max_execution_time` 300, `default_socket_timeout` 60; ошибки PHP в stderr. nginx: `/wp-admin/*.php` с тайм-аутами 300s (общая часть вынесена в `nginx/php-fastcgi.inc`), фронт 60s. `WP_MEMORY_LIMIT`/`WP_MAX_MEMORY_LIMIT` теперь пишутся в `wp-config.php` при каждом старте из окружения (раньше 512M ставилось один раз и само поднимало лимит PHP для всех запросов).
+- [x] 4.2 FPM: `pm = ondemand`, `max_children` из `PHP_FPM_MAX_CHILDREN`, `process_idle_timeout 30s`, `max_requests 500`, slowlog (>10 с) в лог контейнера.
+- [x] 4.3 OPcache: `OPCACHE_MEMORY` (128/192), JIT выключен, `interned_strings_buffer 32`, `revalidate_freq 60`.
+- [x] 4.4 MariaDB: пул и соединения из окружения, `innodb_log_file_size 128M`, `tmp_table_size 32M`, `table_open_cache`, `thread_cache_size`, slow log (`long_query_time=1`, файл `mariadb-data/slow.log` — периодически очищать).
+- [x] 4.5 Redis: `maxmemory` из окружения (64mb/128mb). Кэш nginx в tmpfs 256M → 128M (`max_size=110m`, `inactive=12h`, `keys_zone=20m`).
+- [x] 4.6 `mem_limit` для всех контейнеров (см. таблицу). Лимит nginx 192M включает tmpfs-кэш — он считается в память контейнера.
+- [ ] 4.7 Проверка после выкатки (через сутки): `docker stats`, `free -h` (swap не растёт), `wp redis status`, заголовок `X-FastCGI-Cache`, лог контейнера на `slowlog`/`OOM`. Нагрузочный тест `hey -z 30s -c 20 <url>` на кэшируемую и на некэшируемую (`?s=x`) страницу до/после.
+
+### Профили ресурсов (7 сайтов: 4 нагруженных + 3 обычных)
+
+| Переменная окружения | Обычный (по умолчанию) | Нагруженный |
+|---|---|---|
+| `PHP_FPM_MAX_CHILDREN` | 5 | 8 |
+| `PHP_MEMORY_LIMIT` / `WP_MEMORY_LIMIT` | 256M | 256M |
+| `WP_MAX_MEMORY_LIMIT` (админка) | 512M | 512M |
+| `OPCACHE_MEMORY` | 128 | 192 |
+| `WORDPRESS_MEM_LIMIT` | 768m | 1280m |
+| `INNODB_BUFFER_POOL_SIZE` | 192M | 512M |
+| `DB_MAX_CONNECTIONS` | 60 | 80 |
+| `DB_MEM_LIMIT` | 512m | 1g |
+| `REDIS_MAXMEMORY` | 64mb | 128mb |
+| `REDIS_MEM_LIMIT` | 128m | 192m |
+| `CRON_MEM_LIMIT` | 256m | 256m |
+| nginx (не настраивается) | 192m (кэш 128M) | 192m (кэш 128M) |
+| **Потолок на сайт** | **~1.8 ГБ** | **~2.9 ГБ** |
+| **Типично в работе** (оценка) | ~0.6 ГБ | ~1.2 ГБ |
+
+Бюджет сервера (11.7 ГБ): типично 3×0.6 + 4×1.2 ≈ 6.6 ГБ на WP + ~1.9 ГБ остальное (Coolify, Traefik, Rybbit, phpMyAdmin) ≈ 8.5 ГБ, ~3 ГБ остаётся под кэш файловой системы и пики. Сумма потолков (~17 ГБ) больше RAM намеренно: все сайты одновременно на максимуме не бывают, а лимит защищает от того, что один сайт съест всё. Если по `docker stats` реальный RSS окажется выше оценки — поднимать профиль «нагруженный» нужно только тем сайтам, которым это действительно нужно. Размер `INNODB_BUFFER_POOL_SIZE` уточнить по размеру БД (этап 0.2): пул больше данных бессмысленен.
 
 ## Этап 5. Приложение WordPress (в админке, вместе с владельцем)
 
