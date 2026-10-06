@@ -40,7 +40,14 @@ update_system() {
     apt-get -y autoremove
     
     # Установка утилиты для конвертации ключей и Midnight Commander (MC)
-    apt-get install -y putty-tools mc curl git
+    apt-get install -y putty-tools mc curl git unattended-upgrades
+
+    # Автоматические обновления безопасности ОС (без авто-перезагрузки;
+    # пакеты Docker из стороннего репозитория не затрагиваются)
+    cat <<'APT' > /etc/apt/apt.conf.d/20auto-upgrades
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT
     
     info "Система обновлена, MC установлен."
 }
@@ -86,6 +93,16 @@ tune_kernel() {
         info "👌 Настройка уже есть в конфиге."
     fi
     
+    # 3. swappiness: не выгружать в swap активные страницы БД и PHP ради файлового кэша
+    #    (на сервере с несколькими сайтами swap нужен как страховка, а не как рабочая память)
+    sysctl -w vm.swappiness=10
+    if grep -q "^vm.swappiness" /etc/sysctl.conf; then
+        sed -i 's/^vm.swappiness.*/vm.swappiness = 10/' /etc/sysctl.conf
+    else
+        echo "vm.swappiness = 10" >> /etc/sysctl.conf
+        info "➕ Добавлено vm.swappiness = 10 в /etc/sysctl.conf"
+    fi
+
     info "✅ Параметры ядра настроены."
 }
 
@@ -139,6 +156,8 @@ setup_firewall() {
 
     echo "y" | ufw enable
     info "✅ Порты 22, 80, 443 открыты."
+    warn "UFW НЕ защищает порты, опубликованные Docker (секция ports: в compose): Docker правит iptables в обход UFW."
+    warn "Не публикуйте БД/Redis наружу; для ограничения по IP используйте цепочку DOCKER-USER."
 }
 
 # --- 6. SSH HARDENING (ROOT) ---
@@ -223,7 +242,8 @@ echo "✅ Система:        Обновлена (apt update & upgrade)"
 echo "✅ Утилиты:        Установлены (mc, putty-tools, curl, git)"
 echo "✅ Docker:         Установлен и активен"
 echo "✅ Swap-файл:      Активен (2GB) и добавлен в автозагрузку"
-echo "✅ Ядро (Kernel):  vm.overcommit_memory = 1 (Redis Fix применен)"
+echo "✅ Ядро (Kernel):  vm.overcommit_memory = 1 (Redis Fix), vm.swappiness = 10"
+echo "✅ Автообновления: unattended-upgrades (security, без авто-перезагрузки)"
 echo "✅ Firewall (UFW): Включен. Открыты порты: 22, 80, 443"
 echo "✅ SSH Security:   Вход по паролю ОТКЛЮЧЕН. Только ключи."
 echo "✅ Fail2Ban:       Активен (мониторинг SSH, бан после 3 попыток)"

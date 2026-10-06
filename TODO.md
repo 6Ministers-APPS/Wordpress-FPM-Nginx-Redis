@@ -107,10 +107,10 @@ docker ps -a --filter name=nginx-sq1uh --format '{{.Status}}'; docker logs --tai
 
 ## Этап 6. Хост и внешний слой
 
-- [ ] 6.1 `setup.sh`: `vm.swappiness=10`, `unattended-upgrades`, предупреждение, что опубликованные порты Docker обходят правила UFW.
+- [x] 6.1 `setup.sh`: `vm.swappiness=10`, `unattended-upgrades`, предупреждение, что опубликованные порты Docker обходят правила UFW.
 - [ ] 6.2 HTTP/3 и HSTS в Traefik (Coolify).
 - [ ] 6.3 (опционально) CDN перед сайтами.
-- [ ] 6.4 Скрипт подключения phpMyAdmin к сетям всех стеков (`docker network connect`), запускать после редеплоя. Входить под `monitor_user` (чтение), не под root; не публиковать phpMyAdmin без basic auth или фильтра по IP. Включить `PMA_ARBITRARY=1` или задать `PMA_HOSTS`/`PMA_VERBOSES`.
+- [x] 6.4 `scripts/pma-connect.sh`. Скрипт подключения phpMyAdmin к сетям всех стеков (`docker network connect`), запускать после редеплоя. Входить под `monitor_user` (чтение), не под root; не публиковать phpMyAdmin без basic auth или фильтра по IP. Включить `PMA_ARBITRARY=1` или задать `PMA_HOSTS`/`PMA_VERBOSES`.
 
 ```bash
 for c in $(docker ps --format '{{.Names}}' | grep ^mariadb-); do
@@ -122,14 +122,14 @@ for n in <uuid-стека-1> <uuid-стека-2> ...; do docker network connect 
 
 ## Этап 7. Документация и итог
 
-- [ ] 7.1 Обновить README: новые переменные окружения, бюджет памяти, как проверять кэш. Сейчас там устаревшие числа (`pm.max_children = 10`, «~4GB RAM»).
+- [x] 7.1 Обновить README: новые переменные окружения, бюджет памяти, как проверять кэш. Сейчас там устаревшие числа (`pm.max_children = 10`, «~4GB RAM»).
 - [ ] 7.2 Повторить замеры этапа 0 и составить таблицу «до/после».
 
 ## Прочие мелочи
 
-- [ ] Удалить пустой неиспользуемый `php/pma-custom-php.ini`.
-- [ ] Закрепить тег `redis` вместо `latest`.
-- [ ] Healthcheck MariaDB без пароля root в командной строке (см. 2.1).
+- [x] Удалить пустой неиспользуемый `php/pma-custom-php.ini`.
+- [x] Закрепить тег `redis` вместо `latest`.
+- [x] Healthcheck MariaDB без пароля root в командной строке (см. 2.1).
 - [ ] `location = /xmlrpc.php { deny all; }` ломает Jetpack и мобильное приложение WP: убедиться, что они не используются.
 
 ## Блокеры
