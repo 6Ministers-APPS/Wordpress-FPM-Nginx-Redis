@@ -45,10 +45,10 @@ docker ps -a --filter name=nginx-sq1uh --format '{{.Status}}'; docker logs --tai
 - [x] 1.1 `Dockerfile`: igbinary 3.2.16 + phpredis 6.2.0 с igbinary/lz4/zstd, WP-CLI 2.12.0 с проверкой sha512, убраны лишние пакеты. Коммит `b022344`, **локально, не запушен**.
   - Проверка после сборки: `php --ri redis` показывает igbinary и lz4; `wp redis status` без ошибок.
   - Сборка не проверялась (в среде разработки нет Docker и закрыт PECL) — первая сборка в Coolify на одном сайте.
-- [~] 1.2 `docker-compose.yaml`: один образ на `wordpress` и `wp-cron` (сборка один раз), закрепить теги `redis` и `fholzer/nginx-brotli`, убрать volume `redis-data` (персистентность Redis выключена). `container_name` не трогать.
-- [ ] 1.3 wp-cron: запуск от `33:33` без `--allow-root`, ожидание `wp-config.php` вместо `sleep 20`, убрать «временный» вывод.
+- [x] 1.2 `docker-compose.yaml`: закреплены `redis:7-alpine` и `fholzer/nginx-brotli:v1.31.3`, убран volume `redis-data`. `container_name` не трогали. Общий образ для `wordpress` и `wp-cron` не делали: Coolify собирает сервисы сам, второй `build` берётся из кэша слоёв.
+- [x] 1.3 wp-cron: запуск от `33:33` без `--allow-root`, ожидание `wp-config.php` вместо `sleep 20`, убрать «временный» вывод.
   - Проверка: `find wp-content -user root` пусто.
-- [ ] 1.4 Сброс объектного кэша Redis после смены сериализатора (в init-script или инструкцией при редеплое).
+- [x] 1.4 Сброс объектного кэша Redis после смены сериализатора (init-script один раз делает `wp cache flush`, маркер `.redis_format_igbinary_lz4`).
 
 ## Этап 2. Надёжность запуска
 
@@ -113,4 +113,4 @@ for n in <uuid-стека-1> <uuid-стека-2> ...; do docker network connect 
 
 ## Блокеры
 
-- **Push в GitHub отклонён (403):** у Claude нет доступа к `6Ministers-APPS/Wordpress-FPM-Nginx-Redis`. Нужно переподключить GitHub на https://claude.ai/connect-github и, если приложение Claude не установлено в организации, установить его (владелец организации): https://github.com/apps/claude/installations/select_target. До этого все коммиты лежат только в локальной ветке.
+Нет.

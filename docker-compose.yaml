@@ -47,21 +47,29 @@ services:
       - WORDPRESS_DB_USER=$SERVICE_USER_WORDPRESS
       - WORDPRESS_DB_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - WORDPRESS_DB_NAME=wordpress
+      # uid 33 не имеет домашней директории — кэш и конфиг WP-CLI кладём в /tmp
+      - HOME=/tmp
+      - WP_CLI_CACHE_DIR=/tmp/wp-cli-cache
     depends_on:
       - mariadb
       - wordpress
+    # Работает не от root: файлы, созданные кроном, должны быть доступны PHP-FPM (www-data, uid 33).
+    user: "33:33"
     entrypoint: >
-      sh -c " echo '⏳ Жду инициализации базы и конфига...' && sleep 20 && echo '🚀 Запуск WP-Cron Worker...' && while true; do
-        # Запускаем крон через CLI. --allow-root нужен, так как контейнер стартует от рута.
-        # ВРЕМЕННО: вывод не подавляется, чтобы увидеть ошибки в логах (диагностика).
-        echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Running wp cron event run...\"
-        wp cron event run --due-now --allow-root --path=/var/www/html
-        sleep 60
+      sh -c "
+      echo '⏳ Жду wp-config.php...';
+      until [ -f /var/www/html/wp-config.php ]; do sleep 5; done;
+      echo '⏳ Жду установки WordPress (таблицы в БД)...';
+      until wp core is-installed --path=/var/www/html >/dev/null 2>&1; do sleep 10; done;
+      echo '🚀 Запуск WP-Cron Worker...';
+      while true; do
+        wp cron event run --due-now --path=/var/www/html || echo \"[$$(date '+%F %T')] wp cron завершился с ошибкой\";
+        sleep 60;
       done"
   # ---------------------------------------
 
   nginx:
-    image: fholzer/nginx-brotli:latest
+    image: fholzer/nginx-brotli:v1.31.3
     expose:
       - "80"
     environment:
@@ -110,12 +118,10 @@ services:
       retries: 5
 
   wp_redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: ${REDIS_CONTAINER_NAME:-wp_redis}
     # ports:
     #  - "127.0.0.1:6379:6379"
-    volumes:
-      - ./redis-data:/data
     command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]

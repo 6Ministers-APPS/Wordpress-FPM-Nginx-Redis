@@ -341,6 +341,10 @@ set_config_string_force RT_WP_NGINX_HELPER_CACHE_PATH "/var/run/nginx-cache"
 if wp core is-installed --allow-root --path=/var/www/html >/dev/null 2>&1; then
     wp plugin activate nginx-helper redis-cache --allow-root --path=/var/www/html || true
     wp redis enable --allow-root --path=/var/www/html || true
+    # Формат кэша изменился (igbinary + lz4): старые записи в Redis нечитаемы — один раз сбрасываем.
+    if [ ! -f /var/www/html/.redis_format_igbinary_lz4 ]; then
+        wp cache flush --allow-root --path=/var/www/html && touch /var/www/html/.redis_format_igbinary_lz4 || true
+    fi
     wp option update rt_wp_nginx_helper_options '{"enable_purge":"1","enable_map":"0","enable_log":"0","log_level":"INFO","log_filesize":"5","enable_stamp":"0","purge_homepage_on_edit":"1","purge_homepage_on_del":"1","purge_archive_on_edit":"1","purge_archive_on_del":"1","purge_archive_on_new_comment":"0","purge_archive_on_deleted_comment":"0","purge_page_on_mod":"1","purge_page_on_new_comment":"1","purge_page_on_deleted_comment":"1","purge_method":"unlink_files"}' --format=json --allow-root --path=/var/www/html || true
 else
     echo "⚠️ Ожидание: WordPress еще не установлен (таблицы в БД не созданы)."
