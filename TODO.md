@@ -52,10 +52,10 @@ docker ps -a --filter name=nginx-sq1uh --format '{{.Status}}'; docker logs --tai
 
 ## Этап 2. Надёжность запуска
 
-- [ ] 2.1 Healthcheck: FPM через `ping.path` + `cgi-fcgi`; MariaDB через `healthcheck.sh --connect --innodb_initialized`; `depends_on: condition: service_healthy`; `restart: unless-stopped` для всех сервисов.
-- [ ] 2.2 `init-script.sh`: убрать цикл `chmod 1777` каждые 30 с; убрать `chown -R` по всему сайту при каждом старте; права 755/644 вместо `chmod -R 775`; S3-Uploads скачивать только при смене версии; `wp` вызывать от `www-data`.
-- [ ] 2.3 Не выставлять `FLUENT_*_CLOUD_STORAGE=amazon_s3`, пока ключи пустые.
-- [ ] 2.4 `create-readonly-user.sh`: экранирование пароля в SQL, ограничить хост `monitor_user`.
+- [x] 2.1 Healthcheck FPM через `ping.path` + `cgi-fcgi` (пакет `libfcgi-bin` в образе); `depends_on: condition: service_healthy`; `restart: unless-stopped` для всех сервисов. MariaDB: пароль root передаётся через `MYSQL_PWD`, а не в аргументах. `healthcheck.sh` из образа не берём: на уже существующих каталогах данных нет служебного пользователя `healthcheck`, стек стал бы unhealthy.
+- [~] 2.2 `init-script.sh` (сделано всё, кроме вызова `wp` от www-data: владельца файлов исправляет `find ... chown` в конце, так что на практике безопасно): убрать цикл `chmod 1777` каждые 30 с; убрать `chown -R` по всему сайту при каждом старте; права 755/644 вместо `chmod -R 775`; S3-Uploads скачивать только при смене версии; `wp` вызывать от `www-data`.
+- [x] 2.3 Не выставлять `FLUENT_*_CLOUD_STORAGE=amazon_s3`, пока ключи пустые.
+- [x] 2.4 `create-readonly-user.sh`: экранирование пароля, `ALTER USER` (пароль обновляется), root-пароль через `MYSQL_PWD`. Хост `'%'` оставлен: порт БД наружу не публикуется, подсеть Docker заранее неизвестна. Скрипт, как и раньше, срабатывает только при первой инициализации каталога данных.
 
 ## Этап 3. Nginx: кэш, безопасность, реальный IP
 
@@ -114,3 +114,8 @@ for n in <uuid-стека-1> <uuid-стека-2> ...; do docker network connect 
 ## Блокеры
 
 Нет.
+
+## Для редеплоя этапа 2
+
+- На существующих сайтах `FLUENT_*_CLOUD_STORAGE=amazon_s3` уже записаны в `wp-config.php` (раньше задавалось один раз) — при пустых ключах их стоит убрать вручную: `wp config delete FLUENT_BOARDS_CLOUD_STORAGE` (и `COMMUNITY`, `CART`).
+- Первый старт после обновления выполнит один `find ... chown` по сайту; если контейнер долго «starting», это он.

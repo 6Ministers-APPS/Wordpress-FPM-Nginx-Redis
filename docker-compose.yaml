@@ -23,14 +23,18 @@ services:
       - WP_DEBUG_LOG=${WP_DEBUG_LOG:-false}
       - WP_DEBUG_DISPLAY=${WP_DEBUG_DISPLAY:-false}
       - WP_REDIS_HOST=${REDIS_CONTAINER_NAME:-wp_redis}
+    restart: unless-stopped
     depends_on:
-      - mariadb
+      mariadb:
+        condition: service_healthy
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
-      test: ["CMD-SHELL", "php-fpm -t || exit 1"]
+      # ping.path в php-fpm-tuning.conf; проверяем, что FPM реально отвечает, а не только что конфиг валиден
+      test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 3
+      start_period: 30s
 
   # --- НОВЫЙ СЕРВИС: WP-CRON (Sidecar) ---
   wp-cron:
@@ -51,8 +55,10 @@ services:
       - HOME=/tmp
       - WP_CLI_CACHE_DIR=/tmp/wp-cli-cache
     depends_on:
-      - mariadb
-      - wordpress
+      mariadb:
+        condition: service_healthy
+      wordpress:
+        condition: service_healthy
     # Работает не от root: файлы, созданные кроном, должны быть доступны PHP-FPM (www-data, uid 33).
     user: "33:33"
     entrypoint: >
@@ -93,12 +99,15 @@ services:
       - ./wordpress-files:/var/www/html
       - ./logs/nginx:/var/log/nginx
       - fastcgi_cache:/var/run/nginx-cache
+    restart: unless-stopped
     depends_on:
-      - wordpress
+      wordpress:
+        condition: service_healthy
 
   mariadb:
     image: mariadb:11
     container_name: ${DB_CONTAINER_NAME:-mariadb}
+    restart: unless-stopped
     volumes:
       - ./mariadb-data:/var/lib/mysql
       - ./my.cnf:/etc/mysql/conf.d/my.cnf:ro
@@ -112,7 +121,8 @@ services:
       - MYSQL_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - READONLY_PASSWORD=${READONLY_DB_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$$MYSQL_ROOT_PASSWORD || exit 1"]
+      # пароль через MYSQL_PWD, а не в аргументах командной строки
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost -u root || exit 1"]
       interval: 10s
       timeout: 20s
       retries: 5
@@ -120,6 +130,7 @@ services:
   wp_redis:
     image: redis:7-alpine
     container_name: ${REDIS_CONTAINER_NAME:-wp_redis}
+    restart: unless-stopped
     # ports:
     #  - "127.0.0.1:6379:6379"
     command: ["redis-server", "--maxmemory 512mb", "--maxmemory-policy allkeys-lru", "--save", "", "--appendonly", "no"]

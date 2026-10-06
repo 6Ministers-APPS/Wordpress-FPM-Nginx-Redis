@@ -11,11 +11,13 @@ ARG WP_CLI_SHA512=be928f6b8ca1e8dfb9d2f4b75a13aa4aee0896f8a9a0a1c45cd5d2c98605e6
 # 🛠 Системные пакеты:
 #   libbz2-dev           — для сборки bz2
 #   liblz4-dev, libzstd-dev — сжатие в phpredis (WP_REDIS_COMPRESSION)
+#   libfcgi-bin          — cgi-fcgi для healthcheck php-fpm
 #   ffmpeg, unzip, wget  — нужны плагинам и init-script.sh
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libbz2-dev \
     liblz4-dev \
     libzstd-dev \
+    libfcgi-bin \
     ffmpeg \
     zip \
     unzip \

@@ -12,18 +12,8 @@ else
     echo "👌 Папка кэша уже существует."
 fi
 
-# 1777 нужны, так как Nginx и WP могут работать от разных пользователей
-chmod 1777 "$CACHE_DIR"
-chmod -R 1777 "$CACHE_DIR" 2>/dev/null || true
-echo "🔓 Права 1777 для кэша установлены."
-
-# Фоновый процесс: nginx создаёт поддиректории кеша с 0700,
-# PHP-FPM не может их удалять. Каждые 30 сек исправляем права.
-(while true; do
-    find "$CACHE_DIR" -type d ! -perm 1777 -exec chmod 1777 {} + 2>/dev/null
-    sleep 30
-done) &
-echo "🔄 Фоновый фикс прав кэша запущен."
+# nginx (wpuser) и PHP-FPM (www-data) работают под одним uid 33, а tmpfs смонтирован
+# с uid=33 — дополнительные chmod/фоновый «фиксер» прав не нужны.
 
 # ==============================================================================
 # 1. ЖДЕМ WORDPRESS
@@ -118,6 +108,15 @@ cd /var/www/html/wp-content/plugins
 # Версия плагина (меняйте тут для обновления)
 S3_VERSION="3.0.10"
 
+S3_INSTALLED=""
+if [ -f s3-uploads/s3-uploads.php ]; then
+    S3_INSTALLED=$(grep -m1 -ioP 'Version:\s*\K[0-9.]+' s3-uploads/s3-uploads.php || true)
+fi
+
+if [ "$S3_INSTALLED" = "$S3_VERSION" ] && [ -f s3-uploads/inc/class-wp-cli-command.php ] && [ -f /var/www/html/wp-cli.yml ]; then
+    echo "✅ S3-Uploads $S3_VERSION уже установлен — пропускаю скачивание."
+else
+
 rm -f s3-uploads-new.zip
 rm -rf s3-uploads-staging
 
@@ -184,6 +183,8 @@ else
     rm -f s3-uploads-new.zip
 fi
 
+fi  # конец блока «скачивать только при смене версии»
+
 # Возвращаемся в корень
 cd /var/www/html
 
@@ -210,7 +211,7 @@ if [ ! -f "$MARKER" ]; then
     echo "⚙️ Настраиваю Fluent Storage..."
     
     # Fluent Boards
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE "amazon_s3"
+    # FLUENT_BOARDS_CLOUD_STORAGE ("amazon_s3") задайте вручную, когда заполните ключи ниже
     set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_ACCESS_KEY ""
     set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_SECRET_KEY ""
     set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_BUCKET ""
@@ -219,7 +220,7 @@ if [ ! -f "$MARKER" ]; then
     set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_SUB_FOLDER ""
 
     # Fluent Community
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE "amazon_s3"
+    # FLUENT_COMMUNITY_CLOUD_STORAGE ("amazon_s3") задайте вручную, когда заполните ключи ниже
     set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_ACCESS_KEY ""
     set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_SECRET_KEY ""
     set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_BUCKET ""
@@ -228,7 +229,7 @@ if [ ! -f "$MARKER" ]; then
     set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_SUB_FOLDER ""
 
     # Fluent Cart
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE "amazon_s3"
+    # FLUENT_CART_CLOUD_STORAGE ("amazon_s3") задайте вручную, когда заполните ключи ниже
     set_config_string_once FLUENT_CART_CLOUD_STORAGE_ACCESS_KEY ""
     set_config_string_once FLUENT_CART_CLOUD_STORAGE_SECRET_KEY ""
     set_config_string_once FLUENT_CART_CLOUD_STORAGE_BUCKET ""
@@ -331,8 +332,10 @@ echo "🔧 Финальная настройка прав..."
 cd /var/www/html
 mkdir -p wp-content/uploads
 
-chown -R www-data:www-data /var/www/html
-chmod -R 775 wp-content
+# Правим только то, что отличается (find дешевле, чем chown/chmod -R по всему сайту на каждом старте)
+find /var/www/html \( ! -user www-data -o ! -group www-data \) -exec chown www-data:www-data {} + 2>/dev/null || true
+find wp-content -type d ! -perm 755 -exec chmod 755 {} + 2>/dev/null || true
+find wp-content -type f -perm /022 -exec chmod go-w {} + 2>/dev/null || true
 chmod 640 /var/www/html/wp-config.php
 
 # --- НАСТРОЙКА NGINX HELPER (ПУТЬ К КЭШУ) ---
