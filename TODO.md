@@ -132,6 +132,14 @@ for n in <uuid-стека-1> <uuid-стека-2> ...; do docker network connect 
 - [x] Healthcheck MariaDB без пароля root в командной строке (см. 2.1).
 - [ ] `location = /xmlrpc.php { deny all; }` ломает Jetpack и мобильное приложение WP: убедиться, что они не используются.
 
+## Инцидент 2026-10-06: деплой стека упал на healthcheck MariaDB
+
+- Причина: в образе `mariadb:11.8` нет `mysqladmin` (клиент называется `mariadb-admin`). Старый healthcheck не работал и раньше, но от него ничего не зависело, пока я не добавил `depends_on: service_healthy`; деплой остановился, новые wordpress/nginx/wp-cron остались в статусе Created, сайт лежал. Вручную запущено `docker start` на три контейнера.
+- Исправлено: healthcheck ищет `mariadb-admin` или `mysqladmin` (+ `start_period: 60s`); `depends_on` без условий здоровья (healthcheck остаётся для статуса); `create-readonly-user.sh` вызывает `mariadb`; возвращены прежние `size=256M` у тома `fastcgi_cache` (смена параметров существующего тома ломает деплой) и `innodb_log_file_size = 256M`.
+- Урок для выкатки: проверять healthcheck на реальном образе до того, как от него начинают зависеть другие сервисы.
+- [ ] Убрать устаревший `innodb_flush_method = O_DIRECT` из `my.cnf` (MariaDB 11.8 предупреждает, что опция устарела).
+- [ ] Остальные 4 стека деплоить только после слияния этого исправления.
+
 ## Блокеры
 
 Нет.

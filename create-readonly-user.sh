@@ -20,7 +20,8 @@ PW_ESC=${PW_ESC//\'/\\\'}
 
 # Пароль root — через MYSQL_PWD, а не аргументом командной строки.
 # CREATE IF NOT EXISTS + ALTER USER: пароль обновляется, даже если пользователь уже есть.
-MYSQL_PWD="${MARIADB_ROOT_PASSWORD}" mysql -u root <<-EOSQL
+MYSQL_BIN=$(command -v mariadb || command -v mysql)
+MYSQL_PWD="${MARIADB_ROOT_PASSWORD}" "$MYSQL_BIN" -u root <<-EOSQL
     CREATE USER IF NOT EXISTS 'monitor_user'@'%' IDENTIFIED BY '${PW_ESC}';
     ALTER USER 'monitor_user'@'%' IDENTIFIED BY '${PW_ESC}';
     GRANT SELECT ON \`${MARIADB_DATABASE}\`.* TO 'monitor_user'@'%';
