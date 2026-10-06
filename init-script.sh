@@ -12,18 +12,8 @@ else
     echo "👌 Папка кэша уже существует."
 fi
 
-# 1777 нужны, так как Nginx и WP могут работать от разных пользователей
-chmod 1777 "$CACHE_DIR"
-chmod -R 1777 "$CACHE_DIR" 2>/dev/null || true
-echo "🔓 Права 1777 для кэша установлены."
-
-# Фоновый процесс: nginx создаёт поддиректории кеша с 0700,
-# PHP-FPM не может их удалять. Каждые 30 сек исправляем права.
-(while true; do
-    find "$CACHE_DIR" -type d ! -perm 1777 -exec chmod 1777 {} + 2>/dev/null
-    sleep 30
-done) &
-echo "🔄 Фоновый фикс прав кэша запущен."
+# nginx (wpuser) и PHP-FPM (www-data) работают под одним uid 33, а tmpfs смонтирован
+# с uid=33 — дополнительные chmod/фоновый «фиксер» прав не нужны.
 
 # ==============================================================================
 # 1. ЖДЕМ WORDPRESS
@@ -93,6 +83,12 @@ set_config_force WP_DEBUG_LOG "$ENV_WP_DEBUG_LOG"
 set_config_force WP_DEBUG_DISPLAY "$ENV_WP_DEBUG_DISPLAY"
 set_config_force SCRIPT_DEBUG "false"
 
+# --- A2. Лимиты памяти WordPress (из окружения, при каждом старте) ---
+# WP_MEMORY_LIMIT выше memory_limit PHP поднимает лимит для ВСЕХ запросов — держим его равным PHP_MEMORY_LIMIT.
+# WP_MAX_MEMORY_LIMIT — потолок только для админки (Elementor, импорт, обновления).
+set_config_string_force WP_MEMORY_LIMIT "${WP_MEMORY_LIMIT:-256M}"
+set_config_string_force WP_MAX_MEMORY_LIMIT "${WP_MAX_MEMORY_LIMIT:-512M}"
+
 # Защита от вывода PHP ошибок (через sed)
 if ! grep -q "display_errors" /var/www/html/wp-config.php; then
     sed -i "/WP_DEBUG_DISPLAY/a @ini_set( 'display_errors', 0 );" /var/www/html/wp-config.php
@@ -117,6 +113,15 @@ cd /var/www/html/wp-content/plugins
 
 # Версия плагина (меняйте тут для обновления)
 S3_VERSION="3.0.10"
+
+S3_INSTALLED=""
+if [ -f s3-uploads/s3-uploads.php ]; then
+    S3_INSTALLED=$(grep -m1 -ioP 'Version:\s*\K[0-9.]+' s3-uploads/s3-uploads.php || true)
+fi
+
+if [ "$S3_INSTALLED" = "$S3_VERSION" ] && [ -f s3-uploads/inc/class-wp-cli-command.php ] && [ -f /var/www/html/wp-cli.yml ]; then
+    echo "✅ S3-Uploads $S3_VERSION уже установлен — пропускаю скачивание."
+else
 
 rm -f s3-uploads-new.zip
 rm -rf s3-uploads-staging
@@ -184,6 +189,8 @@ else
     rm -f s3-uploads-new.zip
 fi
 
+fi  # конец блока «скачивать только при смене версии»
+
 # Возвращаемся в корень
 cd /var/www/html
 
@@ -206,36 +213,6 @@ if [ ! -f "$MARKER" ]; then
     set_config_string_once WP_REDIS_COMPRESSION "lz4" 
     set_config_string_once WP_REDIS_SERIALIZER "igbinary"
 
-    # --- B. Конфигурация Fluent Storage ---
-    echo "⚙️ Настраиваю Fluent Storage..."
-    
-    # Fluent Boards
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE "amazon_s3"
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_ACCESS_KEY ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_SECRET_KEY ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_BUCKET ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_REGION ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_ENDPOINT ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_SUB_FOLDER ""
-
-    # Fluent Community
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE "amazon_s3"
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_ACCESS_KEY ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_SECRET_KEY ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_BUCKET ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_REGION ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_ENDPOINT ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_SUB_FOLDER ""
-
-    # Fluent Cart
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE "amazon_s3"
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_ACCESS_KEY ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_SECRET_KEY ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_BUCKET ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_REGION ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_ENDPOINT ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_SUB_FOLDER ""
-
     # --- C. S3 Uploads (Только конфиг!) ---
     echo "⚙️ Настраиваю S3 Uploads (пустые шаблоны)..."
     set_config_string_once S3_UPLOADS_BUCKET ""
@@ -246,7 +223,6 @@ if [ ! -f "$MARKER" ]; then
     set_config_string_once S3_UPLOADS_BUCKET_URL ""
 
     # --- D. Лимиты и Ядро ---
-    set_config_string_force WP_MEMORY_LIMIT "512M"
     set_config_force WP_AUTO_UPDATE_CORE "false"
     set_config_force DISABLE_WP_CRON "true"
 
@@ -261,36 +237,21 @@ if [ ! -f "$MARKER" ]; then
 
     PLUGINS=(
       "wp-crontrol"
-      "mainwp-child"
       "security-ninja"
-      "sessions"
-      "ninja-tables"
       "autoptimize"
       "easy-code-manager"
-      "independent-analytics"
       "wp-seopress"
       "elementor"
       "cyr-to-lat"
-      "aimogen"
       "betterdocs"
-      "essential-addons-for-elementor-lite"
-      "essential-blocks"
-      "fluent-boards"
       "fluentform"
-      "fluent-support"
-      "fluent-affiliate"
       "fluent-security"
-      "fluent-booking"
-      "fluent-cart"
-      "fluent-community"
       "fluent-crm"
       "fluent-smtp"
       "loco-translate"
       "nginx-helper"
-      "wp-payment-form"
       "really-simple-ssl"
       "redis-cache"
-      "templately"
       "wpvivid-backuprestore"
       "compressx"
     )
@@ -331,8 +292,10 @@ echo "🔧 Финальная настройка прав..."
 cd /var/www/html
 mkdir -p wp-content/uploads
 
-chown -R www-data:www-data /var/www/html
-chmod -R 775 wp-content
+# Правим только то, что отличается (find дешевле, чем chown/chmod -R по всему сайту на каждом старте)
+find /var/www/html \( ! -user www-data -o ! -group www-data \) -exec chown www-data:www-data {} + 2>/dev/null || true
+find wp-content -type d ! -perm 755 -exec chmod 755 {} + 2>/dev/null || true
+find wp-content -type f -perm /022 -exec chmod go-w {} + 2>/dev/null || true
 chmod 640 /var/www/html/wp-config.php
 
 # --- НАСТРОЙКА NGINX HELPER (ПУТЬ К КЭШУ) ---
@@ -341,6 +304,10 @@ set_config_string_force RT_WP_NGINX_HELPER_CACHE_PATH "/var/run/nginx-cache"
 if wp core is-installed --allow-root --path=/var/www/html >/dev/null 2>&1; then
     wp plugin activate nginx-helper redis-cache --allow-root --path=/var/www/html || true
     wp redis enable --allow-root --path=/var/www/html || true
+    # Формат кэша изменился (igbinary + lz4): старые записи в Redis нечитаемы — один раз сбрасываем.
+    if [ ! -f /var/www/html/.redis_format_igbinary_lz4 ]; then
+        wp cache flush --allow-root --path=/var/www/html && touch /var/www/html/.redis_format_igbinary_lz4 || true
+    fi
     wp option update rt_wp_nginx_helper_options '{"enable_purge":"1","enable_map":"0","enable_log":"0","log_level":"INFO","log_filesize":"5","enable_stamp":"0","purge_homepage_on_edit":"1","purge_homepage_on_del":"1","purge_archive_on_edit":"1","purge_archive_on_del":"1","purge_archive_on_new_comment":"0","purge_archive_on_deleted_comment":"0","purge_page_on_mod":"1","purge_page_on_new_comment":"1","purge_page_on_deleted_comment":"1","purge_method":"unlink_files"}' --format=json --allow-root --path=/var/www/html || true
 else
     echo "⚠️ Ожидание: WordPress еще не установлен (таблицы в БД не созданы)."
