@@ -102,7 +102,7 @@ docker ps -a --filter name=nginx-sq1uh --format '{{.Status}}'; docker logs --tai
 ## Этап 5. Приложение WordPress (в админке, вместе с владельцем)
 
 - [ ] 5.1 Размер autoload в `wp_options`: `wp db query "SELECT SUM(LENGTH(option_value))/1024/1024 FROM wp_options WHERE autoload IN ('yes','on')"`, вычистить тяжёлые опции.
-- [ ] 5.2 Аудит плагинов на пересечения (Autoptimize и CompressX при FastCGI-кэше, два набора аддонов Elementor, Security Ninja и Fluent Security). Отключение решает владелец.
+- [~] 5.2 Из шаблона убраны (список согласован с владельцем): essential-addons-for-elementor-lite, essential-blocks, templately, mainwp-child, sessions, independent-analytics, aimogen, ninja-tables, wp-payment-form, fluent-affiliate/-booking/-cart/-boards/-support/-community. Осталось 18 плагинов. **На уже работающих сайтах они остаются — удалять вручную** (`wp plugin deactivate <имя> && wp plugin delete <имя>`): сначала бэкап и проверка, что на страницах не используются их блоки/виджеты (особенно Essential Addons/Blocks и Templately в Elementor). Оставшийся аудит: плагинов на пересечения (Autoptimize и CompressX при FastCGI-кэше, два набора аддонов Elementor, Security Ninja и Fluent Security). Отключение решает владелец.
 - [ ] 5.3 Найти тяжёлые плагины по `slow_query_log`.
 
 ## Этап 6. Хост и внешний слой
@@ -138,5 +138,5 @@ for n in <uuid-стека-1> <uuid-стека-2> ...; do docker network connect 
 
 ## Для редеплоя этапа 2
 
-- На существующих сайтах `FLUENT_*_CLOUD_STORAGE=amazon_s3` уже записаны в `wp-config.php` (раньше задавалось один раз) — при пустых ключах их стоит убрать вручную: `wp config delete FLUENT_BOARDS_CLOUD_STORAGE` (и `COMMUNITY`, `CART`).
+- Плагины Fluent Boards/Community/Cart удалены из шаблона вместе с их константами хранилища. На существующих сайтах после удаления плагинов уберите константы из `wp-config.php`: `wp config list | grep FLUENT_` → `wp config delete <имя>` для `FLUENT_BOARDS_*`, `FLUENT_COMMUNITY_*`, `FLUENT_CART_*`.
 - Первый старт после обновления выполнит один `find ... chown` по сайту; если контейнер долго «starting», это он.

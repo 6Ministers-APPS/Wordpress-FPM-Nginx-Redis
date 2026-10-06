@@ -213,36 +213,6 @@ if [ ! -f "$MARKER" ]; then
     set_config_string_once WP_REDIS_COMPRESSION "lz4" 
     set_config_string_once WP_REDIS_SERIALIZER "igbinary"
 
-    # --- B. Конфигурация Fluent Storage ---
-    echo "⚙️ Настраиваю Fluent Storage..."
-    
-    # Fluent Boards
-    # FLUENT_BOARDS_CLOUD_STORAGE ("amazon_s3") задайте вручную, когда заполните ключи ниже
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_ACCESS_KEY ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_SECRET_KEY ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_BUCKET ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_REGION ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_ENDPOINT ""
-    set_config_string_once FLUENT_BOARDS_CLOUD_STORAGE_SUB_FOLDER ""
-
-    # Fluent Community
-    # FLUENT_COMMUNITY_CLOUD_STORAGE ("amazon_s3") задайте вручную, когда заполните ключи ниже
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_ACCESS_KEY ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_SECRET_KEY ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_BUCKET ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_REGION ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_ENDPOINT ""
-    set_config_string_once FLUENT_COMMUNITY_CLOUD_STORAGE_SUB_FOLDER ""
-
-    # Fluent Cart
-    # FLUENT_CART_CLOUD_STORAGE ("amazon_s3") задайте вручную, когда заполните ключи ниже
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_ACCESS_KEY ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_SECRET_KEY ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_BUCKET ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_REGION ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_ENDPOINT ""
-    set_config_string_once FLUENT_CART_CLOUD_STORAGE_SUB_FOLDER ""
-
     # --- C. S3 Uploads (Только конфиг!) ---
     echo "⚙️ Настраиваю S3 Uploads (пустые шаблоны)..."
     set_config_string_once S3_UPLOADS_BUCKET ""
@@ -267,36 +237,21 @@ if [ ! -f "$MARKER" ]; then
 
     PLUGINS=(
       "wp-crontrol"
-      "mainwp-child"
       "security-ninja"
-      "sessions"
-      "ninja-tables"
       "autoptimize"
       "easy-code-manager"
-      "independent-analytics"
       "wp-seopress"
       "elementor"
       "cyr-to-lat"
-      "aimogen"
       "betterdocs"
-      "essential-addons-for-elementor-lite"
-      "essential-blocks"
-      "fluent-boards"
       "fluentform"
-      "fluent-support"
-      "fluent-affiliate"
       "fluent-security"
-      "fluent-booking"
-      "fluent-cart"
-      "fluent-community"
       "fluent-crm"
       "fluent-smtp"
       "loco-translate"
       "nginx-helper"
-      "wp-payment-form"
       "really-simple-ssl"
       "redis-cache"
-      "templately"
       "wpvivid-backuprestore"
       "compressx"
     )
