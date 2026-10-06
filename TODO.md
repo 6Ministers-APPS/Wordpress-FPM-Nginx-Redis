@@ -64,7 +64,7 @@ docker ps -a --filter name=nginx-sq1uh --format '{{.Status}}'; docker logs --tai
   - Проверка: `?utm_source=x` → HIT, `?s=x` → BYPASS.
 - [x] 3.3 Статика и сжатие: не ставить `expires max` на html/xml; убрать двойной Cache-Control в блоке CompressX (`private` + `expires`); дополнить `brotli_types`, включить `brotli_static`/`gzip_static`.
 - [x] 3.4 Безопасность: `limit_req` на `wp-login.php`; заголовки с `always` для всех location (убран устаревший `X-XSS-Protection`, добавлен `Referrer-Policy`; `Permissions-Policy` не добавляли: `camera=()`/`payment=()` ломают встроенные видеозвонки и платёжные формы Fluent); ротация логов `./logs/nginx` или вывод в stdout.
-- [ ] 3.5 Unix-сокет между nginx и PHP-FPM через общий volume.
+- [x] 3.5 Unix-сокет между nginx и PHP-FPM через общий volume.
 
 ## Этап 4. PHP-FPM, OPcache, MariaDB, Redis (числа под 8 сайтов на 12 ГБ)
 

@@ -12,6 +12,7 @@ services:
       - ./init-script.sh:/usr/local/bin/init-script.sh
       - ./php-fpm-tuning.conf:/usr/local/etc/php-fpm.d/zz-tuning.conf
       - fastcgi_cache:/var/run/nginx-cache
+      - php_socket:/var/run/php
     environment:
       - WORDPRESS_DB_HOST=${DB_CONTAINER_NAME:-mariadb}
       - WORDPRESS_DB_USER=$SERVICE_USER_WORDPRESS
@@ -30,7 +31,7 @@ services:
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
       # ping.path в php-fpm-tuning.conf; проверяем, что FPM реально отвечает, а не только что конфиг валиден
-      test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong || exit 1"]
+      test: ["CMD-SHELL", "SCRIPT_NAME=/ping SCRIPT_FILENAME=/ping REQUEST_METHOD=GET cgi-fcgi -bind -connect /var/run/php/php-fpm.sock | grep -q pong || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 3
@@ -98,6 +99,7 @@ services:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html
       - fastcgi_cache:/var/run/nginx-cache
+      - php_socket:/var/run/php
     restart: unless-stopped
     # access/error логи nginx идут в stdout/stderr; ротация средствами Docker
     logging:
@@ -169,6 +171,8 @@ services:
 
 # 👇 ИСПРАВЛЕНИЕ: Убраны отступы, блок прижат влево
 volumes:
+  # Сокет PHP-FPM, общий для wordpress и nginx
+  php_socket:
   # Наш RAM-диск для кэша
   fastcgi_cache:
     driver_opts:
