@@ -35,9 +35,9 @@ services:
     # Потолок памяти контейнера (OPcache и воркеры PHP считаются здесь же)
     mem_limit: ${WORDPRESS_MEM_LIMIT:-768m}
     restart: unless-stopped
+    # service_started, а не service_healthy: сбой healthcheck не должен останавливать деплой и класть сайт
     depends_on:
-      mariadb:
-        condition: service_healthy
+      - mariadb
     command: sh -c "chmod +x /usr/local/bin/init-script.sh && /usr/local/bin/init-script.sh & docker-entrypoint.sh php-fpm"
     healthcheck:
       # ping.path в php-fpm-tuning.conf; проверяем, что FPM реально отвечает, а не только что конфиг валиден
@@ -70,10 +70,8 @@ services:
       - HOME=/tmp
       - WP_CLI_CACHE_DIR=/tmp/wp-cli-cache
     depends_on:
-      mariadb:
-        condition: service_healthy
-      wordpress:
-        condition: service_healthy
+      - mariadb
+      - wordpress
     mem_limit: ${CRON_MEM_LIMIT:-256m}
     # Работает не от root: файлы, созданные кроном, должны быть доступны PHP-FPM (www-data, uid 33).
     user: "33:33"
@@ -115,7 +113,7 @@ services:
       - ./wordpress-files:/var/www/html
       - fastcgi_cache:/var/run/nginx-cache
       - php_socket:/var/run/php
-    # Потолок включает tmpfs-кэш (128M, он считается в память контейнера) + сам nginx
+    # Потолок включает tmpfs-кэш (до ~110M по max_size, он считается в память контейнера) + сам nginx
     mem_limit: 192m
     restart: unless-stopped
     # access/error логи nginx идут в stdout/stderr; ротация средствами Docker
@@ -125,8 +123,7 @@ services:
         max-size: "10m"
         max-file: "3"
     depends_on:
-      wordpress:
-        condition: service_healthy
+      - wordpress
 
   mariadb:
     image: mariadb:11
@@ -150,11 +147,13 @@ services:
       - MYSQL_PASSWORD=$SERVICE_PASSWORD_WORDPRESS
       - READONLY_PASSWORD=${READONLY_DB_PASSWORD}
     healthcheck:
-      # пароль через MYSQL_PWD, а не в аргументах командной строки
-      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost -u root || exit 1"]
+      # В образе mariadb:11 клиент называется mariadb-admin (mysqladmin может отсутствовать).
+      # Пароль через MYSQL_PWD, а не в аргументах командной строки.
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD $$(command -v mariadb-admin || command -v mysqladmin) ping -h localhost -u root --silent || exit 1"]
       interval: 10s
       timeout: 20s
       retries: 5
+      start_period: 60s
 
   wp_redis:
     image: redis:7-alpine
@@ -202,6 +201,7 @@ volumes:
     driver_opts:
       type: tmpfs
       device: tmpfs
-      # size=128M: лимит памяти (чуть выше max_size=110m в nginx.conf)
+      # size=256M: параметры существующего тома менять нельзя (Compose требует пересоздать том, и деплой падает);
+      # реальный размер кэша ограничивает max_size=110m в nginx.conf
       # uid=33,gid=33: владелец www-data (совпадает с nginx worker и PHP-FPM)
-      o: "size=128M,mode=0755,uid=33,gid=33"
+      o: "size=256M,mode=0755,uid=33,gid=33"
