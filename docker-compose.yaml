@@ -97,9 +97,14 @@ services:
     volumes:
       - ./nginx:/etc/nginx/conf.d
       - ./wordpress-files:/var/www/html
-      - ./logs/nginx:/var/log/nginx
       - fastcgi_cache:/var/run/nginx-cache
     restart: unless-stopped
+    # access/error логи nginx идут в stdout/stderr; ротация средствами Docker
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       wordpress:
         condition: service_healthy

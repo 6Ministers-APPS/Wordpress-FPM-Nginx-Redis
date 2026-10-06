@@ -59,11 +59,11 @@ docker ps -a --filter name=nginx-sq1uh --format '{{.Status}}'; docker logs --tai
 
 ## Этап 3. Nginx: кэш, безопасность, реальный IP
 
-- [ ] 3.1 Реальный IP клиента: `set_real_ip_from` для сетей Docker/Traefik, `real_ip_header X-Forwarded-For`.
-- [ ] 3.2 FastCGI-кэш: `cache_lock`, `background_update`, `use_stale ... updating`, TTL 12h (чистит Nginx Helper); исправить регулярку `$skip_cache_query` (сейчас `s=`/`p=` цепляют лишние URL), привязать к `(^|&)`.
+- [x] 3.1 Реальный IP клиента: `set_real_ip_from` для сетей Docker/Traefik, `real_ip_header X-Forwarded-For`.
+- [x] 3.2 FastCGI-кэш: `cache_lock`, `background_update`, `use_stale ... updating`, TTL 12h (чистит Nginx Helper); исправить регулярку `$skip_cache_query` (сейчас `s=`/`p=` цепляют лишние URL), привязать к `(^|&)`.
   - Проверка: `?utm_source=x` → HIT, `?s=x` → BYPASS.
-- [ ] 3.3 Статика и сжатие: не ставить `expires max` на html/xml; убрать двойной Cache-Control в блоке CompressX (`private` + `expires`); дополнить `brotli_types`, включить `brotli_static`/`gzip_static`.
-- [ ] 3.4 Безопасность: `limit_req` на `wp-login.php`; заголовки с `always` для всех location (убрать устаревший `X-XSS-Protection`, добавить `Referrer-Policy`, `Permissions-Policy`); ротация логов `./logs/nginx` или вывод в stdout.
+- [x] 3.3 Статика и сжатие: не ставить `expires max` на html/xml; убрать двойной Cache-Control в блоке CompressX (`private` + `expires`); дополнить `brotli_types`, включить `brotli_static`/`gzip_static`.
+- [x] 3.4 Безопасность: `limit_req` на `wp-login.php`; заголовки с `always` для всех location (убран устаревший `X-XSS-Protection`, добавлен `Referrer-Policy`; `Permissions-Policy` не добавляли: `camera=()`/`payment=()` ломают встроенные видеозвонки и платёжные формы Fluent); ротация логов `./logs/nginx` или вывод в stdout.
 - [ ] 3.5 Unix-сокет между nginx и PHP-FPM через общий volume.
 
 ## Этап 4. PHP-FPM, OPcache, MariaDB, Redis (числа под 8 сайтов на 12 ГБ)
