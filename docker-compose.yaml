@@ -89,7 +89,7 @@ services:
   # ---------------------------------------
 
   nginx:
-    image: fholzer/nginx-brotli:v1.31.3
+    image: fholzer/nginx-brotli:v1.31.7
     expose:
       - "80"
     environment:

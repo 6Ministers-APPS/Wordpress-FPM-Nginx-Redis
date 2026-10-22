@@ -32,6 +32,9 @@ fastcgi_param HTTP_X_REAL_IP $remote_addr;
 fastcgi_param HTTP_X_FORWARDED_FOR $http_x_forwarded_for;
 fastcgi_param HTTP_X_FORWARDED_PROTO $scheme;
 
+# Защита PHP-FPM от DDoS / исчерпания пула воркеров (до 10 r/s с burst 20)
+limit_req zone=php_flood burst=20 nodelay;
+
 # Брутфорс wp-login.php (ключ пустой для остальных запросов — они не лимитируются)
 limit_req zone=wplogin burst=5 nodelay;
 limit_req_status 429;

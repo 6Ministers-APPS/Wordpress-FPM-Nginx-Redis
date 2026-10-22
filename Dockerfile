@@ -1,6 +1,6 @@
-# Используем официальный образ WordPress с PHP 8.3-FPM
+# Используем официальный образ WordPress с PHP 8.4-FPM (безопасная версия 8.4.27+)
 # (gd, zip, exif, mysqli, intl, opcache в нём уже есть)
-FROM wordpress:php8.3-fpm
+FROM wordpress:php8.4-fpm
 
 # Версии фиксируем, чтобы сборка была воспроизводимой
 ARG IGBINARY_VERSION=3.2.16
