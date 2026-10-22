@@ -89,7 +89,7 @@ services:
   # ---------------------------------------
 
   nginx:
-    image: fholzer/nginx-brotli:v1.31.7
+    image: fholzer/nginx-brotli:latest
     expose:
       - "80"
     environment:
@@ -103,7 +103,7 @@ services:
       echo 'user wpuser;' > /tmp/nginx-user.conf;
       sed -i '/^user /d' /etc/nginx/nginx.conf;
       sed -i '1i include /tmp/nginx-user.conf;' /etc/nginx/nginx.conf;
-      for d in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do mkdir -p /var/run/nginx-cache/\$d; done;
+      for d in 0 1 2 3 4 5 6 7 8 9 a b c d e f; do mkdir -p /var/run/nginx-cache/$$d; done;
       chown -R 33:33 /var/run/nginx-cache;
       chmod -R 0755 /var/run/nginx-cache;
       nginx -g 'daemon off;'
