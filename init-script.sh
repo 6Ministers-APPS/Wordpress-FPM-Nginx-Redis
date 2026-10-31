@@ -86,8 +86,8 @@ set_config_force SCRIPT_DEBUG "false"
 # --- A2. Лимиты памяти WordPress (из окружения, при каждом старте) ---
 # WP_MEMORY_LIMIT выше memory_limit PHP поднимает лимит для ВСЕХ запросов — держим его равным PHP_MEMORY_LIMIT.
 # WP_MAX_MEMORY_LIMIT — потолок только для админки (Elementor, импорт, обновления).
-set_config_string_force WP_MEMORY_LIMIT "${WP_MEMORY_LIMIT:-256M}"
-set_config_string_force WP_MAX_MEMORY_LIMIT "${WP_MAX_MEMORY_LIMIT:-512M}"
+set_config_once WP_MEMORY_LIMIT "${WP_MEMORY_LIMIT:-256M}"
+set_config_once WP_MAX_MEMORY_LIMIT "${WP_MAX_MEMORY_LIMIT:-512M}"
 
 # Защита от вывода PHP ошибок (через sed)
 if ! grep -q "display_errors" /var/www/html/wp-config.php; then
