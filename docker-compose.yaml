@@ -30,7 +30,7 @@ services:
       - PHP_FPM_MAX_CHILDREN=${PHP_FPM_MAX_CHILDREN:-5}
       - OPCACHE_MEMORY=${OPCACHE_MEMORY:-128}
       # Записываются в wp-config.php при каждом старте (init-script.sh); админка поднимается до WP_MAX_MEMORY_LIMIT
-      - WP_MEMORY_LIMIT=${WP_MEMORY_LIMIT:-256M}
+      - WP_MEMORY_LIMIT=${WP_MEMORY_LIMIT:-512M}
       - WP_MAX_MEMORY_LIMIT=${WP_MAX_MEMORY_LIMIT:-512M}
     # Потолок памяти контейнера (OPcache и воркеры PHP считаются здесь же)
     mem_limit: ${WORDPRESS_MEM_LIMIT:-768m}
